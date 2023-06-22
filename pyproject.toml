@@ -11,10 +11,17 @@ authors = [
 description = "Shared utils for the Pyodide ecosystem "
 readme = "README.md"
 requires-python = ">=3.10"
+dependencies = [
+   "pydantic"
+]
 classifiers = [
     "Programming Language :: Python :: 3",
     "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
+]
+[project.optional-dependencies]
+dev = [
+    "pytest"
 ]
 
 [project.urls]
@@ -29,6 +36,7 @@ warn_unreachable = true
 plugins = ["pydantic.mypy"]
 
 check_untyped_defs = true
+ignore_missing_imports = true
 
 [tool.ruff]
 select = [
