@@ -1,5 +1,5 @@
 
-name: Test and lint
+name: CI
 on:
   push:
     branches: [ "main" ]
@@ -10,7 +10,7 @@ permissions:
   contents: read
 
 jobs:
-  build:
+  test:
 
     runs-on: ubuntu-latest
 
