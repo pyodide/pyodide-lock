@@ -6,10 +6,10 @@ import pytest
 
 from pyodide_utils.lock_spec import PyodideLockSpec
 
-DATA_DIR = Path(__file__).parents[1] / "data"
+DATA_DIR = Path(__file__).parent / "data"
 
 
-@pytest.mark.parametrize("pyodide_version", ["0.23.3"])
+@pytest.mark.parametrize("pyodide_version", ["0.22.1", "0.23.3"])
 def test_lock_spec_parsing(pyodide_version, tmp_path):
     source_path = DATA_DIR / f"pyodide-lock-{pyodide_version}.json.gz"
     target_path = tmp_path / "pyodide-lock.json"
