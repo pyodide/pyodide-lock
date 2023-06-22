@@ -18,9 +18,9 @@ pip install pyodide-utils
 ```py
 from pyodide_utils.lock_spec import PyodideLockSpec
 
-lock_spec = PyodideLockSpec.from_file("pyodide-lock.json")
+lock_spec = PyodideLockSpec.from_json("pyodide-lock.json")
 # Make some changes
-lock_spec.to_file("pyodide-lock.json")
+lock_spec.to_json("pyodide-lock.json")
 ```
 
 ## License
