@@ -1,4 +1,8 @@
 # pyodide-utils
+
+[![PyPI Latest Release](https://img.shields.io/pypi/v/pyodide-utils.svg)](https://pypi.org/project/pyodide-utils/)
+![GHA](https://github.com/rth/pyodide-utils/actions/workflows/main.yml/badge.svg)
+
 Shared utils for the Pyodide ecosystem
 
 ## Installation
