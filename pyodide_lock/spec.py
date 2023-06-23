@@ -4,6 +4,8 @@ from typing import Literal
 
 from pydantic import BaseModel, Extra
 
+from .utils import _generate_package_hash
+
 
 class InfoSpec(BaseModel):
     arch: Literal["wasm32", "wasm64"] = "wasm32"
@@ -20,7 +22,7 @@ class PackageSpec(BaseModel):
     version: str
     file_name: str
     install_dir: str
-    sha256: str
+    sha256: str = ""
     package_type: Literal[
         "package", "cpython_module", "shared_library", "static_library"
     ] = "package"
@@ -32,6 +34,11 @@ class PackageSpec(BaseModel):
 
     class Config:
         extra = Extra.forbid
+
+    def update_sha256(self, path: Path) -> "PackageSpec":
+        """Update the sha256 hash for a package."""
+        self.sha256 = _generate_package_hash(path)
+        return self
 
 
 class PyodideLockSpec(BaseModel):
