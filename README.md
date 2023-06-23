@@ -3,7 +3,13 @@
 [![PyPI Latest Release](https://img.shields.io/pypi/v/pyodide-lock.svg)](https://pypi.org/project/pyodide-lock/)
 ![GHA](https://github.com/pyodide/pyodide-lock/actions/workflows/main.yml/badge.svg)
 
-Shared utils for the Pyodide ecosystem
+Tooling to manage the `pyodide-lock.json` file.
+
+This file is used to lock the versions of the packages that are used in a given
+Pyodide application. Packages included in `pyodide-lock.json` will be
+auto-loaded at import time, when using `pyodide.runPythonAsync` or running in
+JupyterLite or PyScript, and do not need to be explicitly installed with
+micropip.
 
 ## Installation
 

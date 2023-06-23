@@ -7,7 +7,7 @@ name = "pyodide-lock"
 authors = [
   { name="Pyodide developers" },
 ]
-description = "Shared utils for the Pyodide ecosystem "
+description = "Tooling to manage the `pyodide-lock.json` file"
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [
