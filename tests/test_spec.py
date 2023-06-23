@@ -4,7 +4,7 @@ from pathlib import Path
 
 import pytest
 
-from pyodide_utils.lock_spec import PyodideLockSpec
+from pyodide_lock import PyodideLockSpec
 
 DATA_DIR = Path(__file__).parent / "data"
 

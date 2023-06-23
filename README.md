@@ -16,7 +16,7 @@ pip install pyodide-utils
 
 1. Parsing and writing the `pyodide-lock.json` (formerly `repodata.json`) file:
 ```py
-from pyodide_utils.lock_spec import PyodideLockSpec
+from pyodide_lock import PyodideLockSpec
 
 lock_spec = PyodideLockSpec.from_json("pyodide-lock.json")
 # Make some changes
