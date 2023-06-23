@@ -1,20 +1,19 @@
-# pyodide-utils
+# pyodide-lock
 
-[![PyPI Latest Release](https://img.shields.io/pypi/v/pyodide-utils.svg)](https://pypi.org/project/pyodide-utils/)
-![GHA](https://github.com/rth/pyodide-utils/actions/workflows/main.yml/badge.svg)
+[![PyPI Latest Release](https://img.shields.io/pypi/v/pyodide-lock.svg)](https://pypi.org/project/pyodide-lock/)
+![GHA](https://github.com/pyodide/pyodide-lock/actions/workflows/main.yml/badge.svg)
 
 Shared utils for the Pyodide ecosystem
 
 ## Installation
 
 ```bash
-pip install pyodide-utils
+pip install pyodide-lock
 ```
 
+## Python API
 
-## Functionality
-
-1. Parsing and writing the `pyodide-lock.json` (formerly `repodata.json`) file:
+To parsing and write the `pyodide-lock.json` (formerly `repodata.json`) file:
 ```py
 from pyodide_lock import PyodideLockSpec
 
