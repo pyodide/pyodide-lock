@@ -1,14 +1,13 @@
 [build-system]
-requires = ["hatchling"]
+requires = ["hatchling", "hatch-vcs"]
 build-backend = "hatchling.build"
 
 [project]
-name = "pyodide-utils"
-version = "0.0.1"
+name = "pyodide-lock"
 authors = [
   { name="Pyodide developers" },
 ]
-description = "Shared utils for the Pyodide ecosystem "
+description = "Tooling to manage the `pyodide-lock.json` file"
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [
@@ -19,18 +18,23 @@ classifiers = [
     "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
 ]
+dynamic = ["version"]
+
 [project.optional-dependencies]
 dev = [
     "pytest"
 ]
 
 [project.urls]
-"Homepage" = "https://github.com/rth/pyiodide-tools"
-"Bug Tracker" = "https://github.com/pypa/sampleproject/issues"
+"Homepage" = "https://github.com/pyodide-lock/pyodide-lock"
+"Bug Tracker" = "https://github.com/pyodide-lock/pyodide-lock/issues"
+
+[tool.hatch.version]
+source = "vcs"
 
 [tool.mypy]
 python_version = "3.10"
-mypy_path = ["pyodide_utils"]
+mypy_path = ["pyodide_lock", "tests"]
 show_error_codes = true
 warn_unreachable = true
 plugins = ["pydantic.mypy"]
