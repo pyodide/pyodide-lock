@@ -5,7 +5,7 @@
 
 Tooling to manage the `pyodide-lock.json` file.
 
-Note: the API if this package is still being iterated on and may change completely
+Note: the API of this package is still being iterated on and may change completely
 before the 0.1 release.
 
 The `pyodide-lock` file is used to lock the versions of the packages that are
