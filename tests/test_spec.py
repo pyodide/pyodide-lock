@@ -28,3 +28,47 @@ def test_lock_spec_parsing(pyodide_version, tmp_path):
     assert set(spec.packages.keys()) == set(spec2.packages.keys())
     for key in spec.packages:
         assert spec.packages[key] == spec2.packages[key]
+
+
+def test_check_wheel_filenames():
+    lock_data = {
+        "info": {
+            "arch": "wasm32",
+            "platform": "emscripten_3_1_39",
+            "version": "0.24.0.dev0",
+            "python": "3.11.3",
+        },
+        "packages": {
+            "numpy": {
+                "name": "numpy",
+                "version": "1.24.3",
+                "file_name": "numpy-1.24.3-cp311-cp311-emscripten_3_1_39_wasm32.whl",
+                "install_dir": "site",
+                "sha256": (
+                    "513af43ffb1f7d507c8d879c9f7e5"
+                    "d6c789ad21b6a67e5bca1d7cfb86bf8640f"
+                ),
+                "imports": ["numpy"],
+                "depends": [],
+            }
+        },
+    }
+
+    spec = PyodideLockSpec(**lock_data)
+    assert spec.check_wheel_filenames() == {}
+
+    lock_data["packages"]["numpy"]["name"] = "numpy2"  # type: ignore[index]
+    spec = PyodideLockSpec(**lock_data)
+    assert spec.check_wheel_filenames() == {
+        "numpy": ["Package name in wheel filename 'numpy' does not match 'numpy2'"]
+    }
+
+    lock_data["packages"]["numpy"]["version"] = "0.2.3"  # type: ignore[index]
+    spec = PyodideLockSpec(**lock_data)
+    assert spec.check_wheel_filenames() == {
+        "numpy": [
+            "Package name in wheel filename 'numpy' does not match 'numpy2'",
+            "Version in the wheel filename '1.24.3' does not match "
+            "package version '0.2.3'",
+        ]
+    }
