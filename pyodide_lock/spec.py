@@ -61,3 +61,36 @@ class PyodideLockSpec(BaseModel):
         """Write the lock spec to a json file."""
         with path.open("w") as fh:
             json.dump(self.dict(), fh, indent=indent)
+
+    def check_wheel_filenames(self) -> None:
+        """Check that the package name and version are consistent in wheel filenames"""
+        from packaging.utils import (
+            canonicalize_name,
+            canonicalize_version,
+            parse_wheel_filename,
+        )
+
+        errors: dict[str, list[str]] = {}
+        for name, spec in self.packages.items():
+            if not spec.file_name.endswith(".whl"):
+                continue
+            name_in_wheel, ver, _, _ = parse_wheel_filename(spec.file_name)
+            if canonicalize_name(name_in_wheel) != canonicalize_name(spec.name):
+                errors.setdefault(name, []).append(
+                    f"Package name in wheel filename {name_in_wheel!r} "
+                    f"does not match {spec.name!r}"
+                )
+            if canonicalize_version(ver) != canonicalize_version(spec.version):
+                errors.setdefault(name, []).append(
+                    f"Version in the wheel filename {canonicalize_version(ver)!r} "
+                    f"does not match package version "
+                    f"{canonicalize_version(spec.version)!r}"
+                )
+        if errors:
+            error_msg = "check_wheel_filenames failed:\n"
+
+            error_msg += "  - " + "\n  - ".join(
+                f"{name}:\n    - " + "\n    - ".join(errs)
+                for name, errs in errors.items()
+            )
+            raise ValueError(error_msg)

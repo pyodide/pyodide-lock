@@ -2,6 +2,7 @@
 
 [![PyPI Latest Release](https://img.shields.io/pypi/v/pyodide-lock.svg)](https://pypi.org/project/pyodide-lock/)
 ![GHA](https://github.com/pyodide/pyodide-lock/actions/workflows/main.yml/badge.svg)
+[![codecov](https://codecov.io/gh/pyodide/pyodide-lock/branch/main/graph/badge.svg?token=T0UEJW2F2P)](https://codecov.io/gh/pyodide/pyodide-lock)
 
 Tooling to manage the `pyodide-lock.json` file.
 
