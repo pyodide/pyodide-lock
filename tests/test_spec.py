@@ -57,23 +57,27 @@ def test_check_wheel_filenames():
     lock_data = deepcopy(LOCK_EXAMPLE)
 
     spec = PyodideLockSpec(**lock_data)
-    assert spec.check_wheel_filenames() == {}
+    spec.check_wheel_filenames()
 
     lock_data["packages"]["numpy"]["name"] = "numpy2"  # type: ignore[index]
     spec = PyodideLockSpec(**lock_data)
-    assert spec.check_wheel_filenames() == {
-        "numpy": ["Package name in wheel filename 'numpy' does not match 'numpy2'"]
-    }
+    msg = (
+        ".*check_wheel_filenames failed.*\n.*numpy:\n.*"
+        "Package name in wheel filename 'numpy' does not match 'numpy2'"
+    )
+    with pytest.raises(ValueError, match=msg):
+        spec.check_wheel_filenames()
 
     lock_data["packages"]["numpy"]["version"] = "0.2.3"  # type: ignore[index]
     spec = PyodideLockSpec(**lock_data)
-    assert spec.check_wheel_filenames() == {
-        "numpy": [
-            "Package name in wheel filename 'numpy' does not match 'numpy2'",
-            "Version in the wheel filename '1.24.3' does not match "
-            "package version '0.2.3'",
-        ]
-    }
+    msg = (
+        ".*check_wheel_filenames failed.*\n.*numpy:\n.*"
+        "Package name in wheel filename 'numpy' does not match 'numpy2'\n.*"
+        "Version in the wheel filename '1.24.3' does not match "
+        "package version '0.2.3'"
+    )
+    with pytest.raises(ValueError, match=msg):
+        spec.check_wheel_filenames()
 
 
 def test_update_sha256(monkeypatch):

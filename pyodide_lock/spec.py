@@ -62,7 +62,7 @@ class PyodideLockSpec(BaseModel):
         with path.open("w") as fh:
             json.dump(self.dict(), fh, indent=indent)
 
-    def check_wheel_filenames(self) -> dict[str, list[str]]:
+    def check_wheel_filenames(self) -> None:
         """Check that the package name and version are consistent in wheel filenames"""
         from packaging.utils import (
             canonicalize_name,
@@ -86,4 +86,11 @@ class PyodideLockSpec(BaseModel):
                     f"does not match package version "
                     f"{canonicalize_version(spec.version)!r}"
                 )
-        return errors
+        if errors:
+            error_msg = "check_wheel_filenames failed:\n"
+
+            error_msg += "  - " + "\n  - ".join(
+                f"{name}:\n    - " + "\n    - ".join(errs)
+                for name, errs in errors.items()
+            )
+            raise ValueError(error_msg)
