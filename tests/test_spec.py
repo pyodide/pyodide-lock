@@ -86,7 +86,7 @@ def test_to_json_indent(tmp_path):
 
     spec = PyodideLockSpec(**lock_data)
     spec.to_json(target_path)
-    
+
     assert "\n" not in target_path.read_text()
 
     spec.to_json(target_path, indent=0)
