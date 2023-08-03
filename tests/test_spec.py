@@ -6,6 +6,7 @@ from pathlib import Path
 import pytest
 
 from pyodide_lock import PyodideLockSpec
+from pyodide_lock.spec import InfoSpec, PackageSpec
 
 DATA_DIR = Path(__file__).parent / "data"
 
@@ -89,3 +90,24 @@ def test_update_sha256(monkeypatch):
     assert spec.packages["numpy"].sha256 == "0"
     spec.packages["numpy"].update_sha256(Path("/some/path"))
     assert spec.packages["numpy"].sha256 == "abcd"
+
+
+def test_extra_config_forbidden():
+    from pydantic import ValidationError
+
+    lock_data = deepcopy(LOCK_EXAMPLE)
+    info_data = deepcopy(lock_data["info"])
+    package_data = deepcopy(lock_data["packages"]["numpy"])  # type: ignore[index]
+
+    lock_data["extra"] = "extra"
+    info_data["extra"] = "extra"  # type: ignore[index]
+    package_data["extra"] = "extra"
+
+    with pytest.raises(ValidationError, match="Extra inputs are not permitted"):
+        PyodideLockSpec(**lock_data)
+
+    with pytest.raises(ValidationError, match="Extra inputs are not permitted"):
+        InfoSpec(**info_data)  # type: ignore[arg-type]
+
+    with pytest.raises(ValidationError, match="Extra inputs are not permitted"):
+        PackageSpec(**package_data)
