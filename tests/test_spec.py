@@ -80,6 +80,22 @@ def test_check_wheel_filenames():
         spec.check_wheel_filenames()
 
 
+def test_to_json_indent(tmp_path):
+    lock_data = deepcopy(LOCK_EXAMPLE)
+    target_path = tmp_path / "pyodide-lock.json"
+
+    spec = PyodideLockSpec(**lock_data)
+    spec.to_json(target_path)
+    
+    assert "\n" not in target_path.read_text()
+
+    spec.to_json(target_path, indent=0)
+    assert "\n" in target_path.read_text()
+
+    spec.to_json(target_path, indent=2)
+    assert "\n" in target_path.read_text()
+
+
 def test_update_sha256(monkeypatch):
     monkeypatch.setattr("pyodide_lock.spec._generate_package_hash", lambda x: "abcd")
     lock_data = deepcopy(LOCK_EXAMPLE)
