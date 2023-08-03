@@ -57,7 +57,7 @@ class PyodideLockSpec(BaseModel):
             data = json.load(fh)
         return cls(**data)
 
-    def to_json(self, path: Path, indent: int = 0) -> None:
+    def to_json(self, path: Path, indent: int | None = None) -> None:
         """Write the lock spec to a json file."""
         with path.open("w") as fh:
             json.dump(self.dict(), fh, indent=indent)
