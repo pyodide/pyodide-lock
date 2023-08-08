@@ -2,22 +2,23 @@ import json
 from pathlib import Path
 from typing import Literal
 
-from pydantic import BaseModel, Extra
+from pydantic import BaseModel, ConfigDict
 
 from .utils import _generate_package_hash
 
 
 class InfoSpec(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
     arch: Literal["wasm32", "wasm64"] = "wasm32"
     platform: str
     version: str
     python: str
 
-    class Config:
-        extra = Extra.forbid
-
 
 class PackageSpec(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
     name: str
     version: str
     file_name: str
@@ -32,9 +33,6 @@ class PackageSpec(BaseModel):
     # This field is deprecated
     shared_library: bool = False
 
-    class Config:
-        extra = Extra.forbid
-
     def update_sha256(self, path: Path) -> "PackageSpec":
         """Update the sha256 hash for a package."""
         self.sha256 = _generate_package_hash(path)
@@ -44,11 +42,10 @@ class PackageSpec(BaseModel):
 class PyodideLockSpec(BaseModel):
     """A specification for the pyodide-lock.json file."""
 
+    model_config = ConfigDict(extra="forbid")
+
     info: InfoSpec
     packages: dict[str, PackageSpec]
-
-    class Config:
-        extra = Extra.forbid
 
     @classmethod
     def from_json(cls, path: Path) -> "PyodideLockSpec":
@@ -60,7 +57,7 @@ class PyodideLockSpec(BaseModel):
     def to_json(self, path: Path, indent: int | None = None) -> None:
         """Write the lock spec to a json file."""
         with path.open("w") as fh:
-            json.dump(self.dict(), fh, indent=indent)
+            json.dump(self.model_dump(), fh, indent=indent)
 
     def check_wheel_filenames(self) -> None:
         """Check that the package name and version are consistent in wheel filenames"""
