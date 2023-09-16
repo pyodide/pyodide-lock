@@ -21,13 +21,28 @@ classifiers = [
 dynamic = ["version"]
 
 [project.optional-dependencies]
+wheel = [
+    "pkginfo",
+    "packaging",
+]
 dev = [
-    "pytest", "pytest-cov"
+    "pytest",
+    "pytest-cov",
+    "build",
+    # from wheel
+    "pkginfo",
+    "packaging",
 ]
 
 [project.urls]
 "Homepage" = "https://github.com/pyodide/pyodide-lock"
 "Bug Tracker" = "https://github.com/pyodide/pyodide-lock/issues"
+
+[tool.coverage.report]
+exclude_lines = [
+  "pragma: no cover",
+  "if TYPE_CHECKING:",
+]
 
 [tool.hatch.version]
 source = "vcs"

@@ -1,10 +1,31 @@
 import hashlib
 import logging
+import re
+import sys
 import zipfile
 from collections import deque
 from pathlib import Path
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from pkginfo import Distribution
 
 logger = logging.getLogger(__name__)
+
+#: the last-observed state of ``packaging.markers.default_environment`` in ``pyodide``
+_PYODIDE_MARKER_ENV = {
+    "implementation_name": "cpython",
+    "implementation_version": "3.11.3",
+    "os_name": "posix",
+    "platform_machine": "wasm32",
+    "platform_release": "3.1.45",
+    "platform_system": "Emscripten",
+    "platform_version": "#1",
+    "python_full_version": "3.11.3",
+    "platform_python_implementation": "CPython",
+    "python_version": "3.11",
+    "sys_platform": "emscripten",
+}
 
 
 def parse_top_level_import_name(whlfile: Path) -> list[str] | None:
@@ -74,3 +95,42 @@ def _generate_package_hash(full_path: Path) -> str:
         while chunk := f.read(4096):
             sha256_hash.update(chunk)
     return sha256_hash.hexdigest()
+
+
+def _normalized_name(raw_name: str) -> str:
+    """Get a PEP 503 normalized name for a python package.
+
+    https://peps.python.org/pep-0503/#normalized-names
+    """
+    return re.sub(r"[-_.]+", "-", raw_name).lower()
+
+
+def _wheel_depends(
+    metadata: "Distribution", marker_env: None | dict[str, str] = None
+) -> list[str]:
+    """Get the normalized runtime distribution dependencies from wheel metadata.
+
+    ``marker_env`` is an optional dictionary of platform information, used to find
+    platform-specific requirments.
+
+    An accurate enumeration can be generated inside the target pyodide environment
+    such as the example below:
+
+    .. code:
+
+        from packaging.markers import default_environment
+        print(default_enviroment())
+    """
+    from packaging.requirements import Requirement
+
+    depends: list[str] = []
+
+    env = {} if "pyodide" in sys.modules else _PYODIDE_MARKER_ENV
+    env.update(marker_env or {})
+
+    for dep_str in metadata.requires_dist:
+        req = Requirement(re.sub(r";$", "", dep_str))
+        if req.marker is None or req.marker.evaluate(env):
+            depends += [_normalized_name(req.name)]
+
+    return sorted(set(depends))

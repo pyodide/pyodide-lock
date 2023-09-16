@@ -4,7 +4,12 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict
 
-from .utils import _generate_package_hash
+from .utils import (
+    _generate_package_hash,
+    _normalized_name,
+    _wheel_depends,
+    parse_top_level_import_name,
+)
 
 
 class InfoSpec(BaseModel):
@@ -32,6 +37,35 @@ class PackageSpec(BaseModel):
     unvendored_tests: bool = False
     # This field is deprecated
     shared_library: bool = False
+
+    @classmethod
+    def from_wheel(
+        cls,
+        path: Path,
+        marker_env: None | dict[str, str] = None,
+    ) -> "PackageSpec":
+        """Build a package spec from an on-disk wheel.
+
+        This currently assumes a "simple" noarch wheel: more complex packages
+        may require further postprocessing.
+        """
+        import pkginfo
+
+        metadata = pkginfo.get_metadata(str(path))
+
+        if not metadata:
+            raise RuntimeError(f"Could not parse wheel metadata from {path.name}")
+
+        return PackageSpec(
+            name=_normalized_name(metadata.name),
+            version=metadata.version,
+            file_name=path.name,
+            sha256=_generate_package_hash(path),
+            package_type="package",
+            install_dir="site",
+            imports=parse_top_level_import_name(path),
+            depends=_wheel_depends(metadata, marker_env),
+        )
 
     def update_sha256(self, path: Path) -> "PackageSpec":
         """Update the sha256 hash for a package."""
