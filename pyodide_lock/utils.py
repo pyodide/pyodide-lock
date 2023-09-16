@@ -10,6 +10,9 @@ logger = logging.getLogger(__name__)
 def parse_top_level_import_name(whlfile: Path) -> list[str] | None:
     """
     Parse the top-level import names from a wheel file.
+
+    While this behavior matches the way ``setuptools`` creates ``top_level.txt``,
+    some cases, such as PEP 420 namespace packages, may not be handled correctly.
     """
 
     if not whlfile.name.endswith(".whl"):

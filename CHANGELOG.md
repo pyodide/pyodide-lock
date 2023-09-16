@@ -4,6 +4,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## Unreleased
+
+### Added
+
+- Adds `parse_top_level_import_name` for finding importable names in `.whl` files
+  [#17](https://github.com/pyodide/pyodide-lock/pull/17)
+
 ## [0.1.0a3] - 2023-09-15
 
 ### Fixed
