@@ -98,7 +98,7 @@ class PyodideLockSpec(BaseModel):
                 f"{name}:\n    - " + "\n    - ".join(errs)
                 for name, errs in errors.items()
             )
-            raise ValueError(error_msg)
+            raise RuntimeError(error_msg)
 
     def add_wheels(
         self,
@@ -151,16 +151,16 @@ class PyodideLockSpec(BaseModel):
 
             if platform_tag == "any":
                 if python_tag not in python_pure_tags:
-                    raise ValueError(
+                    raise RuntimeError(
                         f"Wheel {f} is built for incorrect python version {python_tag}, this lockfile expects {python_binary_tag} or one of {python_pure_tags}"
                     )
             elif platform_tag != target_platform:
-                raise ValueError(
+                raise RuntimeError(
                     f"Wheel {f} is built for incorrect platform {platform_tag}, this lockfile expects {target_platform}"
                 )
             else:
                 if python_tag != python_binary_tag:
-                    raise ValueError(
+                    raise RuntimeError(
                         f"Wheel {f} is built for incorrect python version {python_tag}, this lockfile expects {python_binary_tag}"
                     )
 
@@ -207,6 +207,8 @@ class PyodideLockSpec(BaseModel):
                     requirements_with_extras.append(r)
                 if req_name in new_packages or req_name in self.packages:
                     our_depends.append(req_name)
+                else:
+                    raise RuntimeError(f"Requirement {req_name} is not in this distribution.")
             package.depends = our_depends
 
         while len(requirements_with_extras) != 0:
@@ -236,5 +238,7 @@ class PyodideLockSpec(BaseModel):
                                     our_depends.append(req_name)
                                     if r.extras:
                                         requirements_with_extras.append(r)
+                                else:
+                                    raise RuntimeError(f"Requirement {req_name} is not in this distribution.")
                 package.depends = our_depends
         self.packages.update(new_packages)
