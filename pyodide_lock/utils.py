@@ -91,7 +91,7 @@ def _generate_package_hash(full_path: Path) -> str:
     return sha256_hash.hexdigest()
 
 
-def get_wheel_dependencies(wheel_path: Path, pkg_name: str) -> list[str]:
+def get_wheel_dependencies(wheel_path: Path, pkg_name: str) -> list[Requirement]:
     deps = []
     if not wheel_path.name.endswith(".whl"):
         raise RuntimeError(f"{wheel_path} is not a wheel file.")
@@ -100,7 +100,7 @@ def get_wheel_dependencies(wheel_path: Path, pkg_name: str) -> list[str]:
         metadata_path = f"{dist_info_dir}/METADATA"
         p = BytesParser()
         headers = p.parse(wheel.open(metadata_path), headersonly=True)
-        requires = headers.get_all("Requires-Dist", failobj=[])
+        requires : list[str] = headers.get_all("Requires-Dist", failobj=[])
         for r in requires:
             deps.append(Requirement(r))
     return deps
