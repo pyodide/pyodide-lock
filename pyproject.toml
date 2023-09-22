@@ -11,7 +11,9 @@ description = "Tooling to manage the `pyodide-lock.json` file"
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [
-   "pydantic"
+   "pydantic",
+   "packaging",
+   "pyodide-cli"
 ]
 classifiers = [
     "Programming Language :: Python :: 3",
@@ -60,3 +62,6 @@ select = [
 [tool.pytest.ini_options]
 addopts = '''
 --doctest-modules'''
+
+[project.entry-points."pyodide.cli"]
+lockfile = "pyodide_lock.cli.lockfile:main"
