@@ -100,7 +100,7 @@ class PyodideLockSpec(BaseModel):
                 f"{name}:\n    - " + "\n    - ".join(errs)
                 for name, errs in errors.items()
             )
-            raise RuntimeError(error_msg)
+            raise ValueError(error_msg)
 
     def add_wheels(  # noqa: C901
         self,
