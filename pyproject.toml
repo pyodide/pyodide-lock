@@ -24,7 +24,7 @@ dynamic = ["version"]
 
 [project.optional-dependencies]
 dev = [
-    "pytest", "pytest-cov", "build"
+    "pytest", "pytest-cov", "build", "wheel"
 ]
 
 [project.urls]
