@@ -105,7 +105,6 @@ class PyodideLockSpec(BaseModel):
         wheel_files: list[Path],
         base_path: Path | None = None,
         base_url: str = "",
-        fix_dependencies: bool = True,
     ) -> None:
         """Add a list of wheel files to this pyodide-lock.json
 
@@ -121,11 +120,6 @@ class PyodideLockSpec(BaseModel):
                 which means that wheels must be stored in the same folder as the core pyodide
                 packages you are using. If you want to store your custom wheels somewhere
                 else, set this base_url to point to it.
-
-            fix_dependencies (bool, optional):
-                If this is True, then the dependency lists for each
-                package will be populated with any packages which are available in this pyodide
-                distribution. Defaults to True
         """
         if len(wheel_files) <= 0:
             return
