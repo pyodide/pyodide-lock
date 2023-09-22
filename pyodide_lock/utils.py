@@ -2,14 +2,12 @@ import hashlib
 import logging
 import zipfile
 from collections import deque
+from email.parser import BytesParser
 from pathlib import Path
 from zipfile import ZipFile
-from email.parser import BytesParser
 
-from packaging.utils import canonicalize_name as canonicalize_package_name
-from packaging.utils import parse_wheel_filename
 from packaging.requirements import Requirement
-
+from packaging.utils import canonicalize_name as canonicalize_package_name
 
 logger = logging.getLogger(__name__)
 
@@ -100,7 +98,7 @@ def get_wheel_dependencies(wheel_path: Path, pkg_name: str) -> list[Requirement]
         metadata_path = f"{dist_info_dir}/METADATA"
         p = BytesParser()
         headers = p.parse(wheel.open(metadata_path), headersonly=True)
-        requires : list[str] = headers.get_all("Requires-Dist", failobj=[])
+        requires: list[str] = headers.get_all("Requires-Dist", failobj=[])
         for r in requires:
             deps.append(Requirement(r))
     return deps
@@ -125,7 +123,8 @@ def get_wheel_dist_info_dir(wheel: ZipFile, pkg_name: str) -> str:
 
     if len(info_dirs) > 1:
         raise Exception(
-            f"multiple .dist-info directories found for {pkg_name}: {', '.join(info_dirs)}"
+            f"multiple .dist-info directories found for {pkg_name}:"
+            f"{', '.join(info_dirs)}"
         )
 
     (info_dir,) = info_dirs

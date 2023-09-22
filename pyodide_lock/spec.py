@@ -2,12 +2,14 @@ import json
 from pathlib import Path
 from typing import Literal
 
+from packaging.utils import canonicalize_name
+from packaging.version import parse as version_parse
 from pydantic import BaseModel, ConfigDict
 
 from .utils import (
     _generate_package_hash,
-    parse_top_level_import_name,
     get_wheel_dependencies,
+    parse_top_level_import_name,
 )
 
 
@@ -100,7 +102,7 @@ class PyodideLockSpec(BaseModel):
             )
             raise RuntimeError(error_msg)
 
-    def add_wheels(
+    def add_wheels(  # noqa: C901
         self,
         wheel_files: list[Path],
         base_path: Path | None = None,
@@ -116,18 +118,15 @@ class PyodideLockSpec(BaseModel):
                 in the list.
 
             base_url (str, optional):
-                The base URL stored in the pyodide-lock.json. By default this is empty
-                which means that wheels must be stored in the same folder as the core pyodide
-                packages you are using. If you want to store your custom wheels somewhere
-                else, set this base_url to point to it.
+                The base URL stored in the pyodide-lock.json. By default this
+                is empty which means that wheels must be stored in the same folder
+                as the core pyodide packages you are using. If you want to store
+                your custom wheels somewhere else, set this base_url to point to it.
         """
         if len(wheel_files) <= 0:
             return
-        if base_path == None:
+        if base_path is None:
             base_path = wheel_files[0].parent
-
-        from packaging.utils import canonicalize_name
-        from packaging.version import parse as version_parse
 
         target_python = version_parse(self.info.python)
         python_binary_tag = f"cp{target_python.major}{target_python.minor}"
@@ -146,22 +145,26 @@ class PyodideLockSpec(BaseModel):
             name = canonicalize_name(split_name[0])
             version = split_name[1]
             python_tag = split_name[-3]
-            abi_tag = split_name[-2]
+            split_name[-2]
             platform_tag = split_name[-1]
 
             if platform_tag == "any":
                 if python_tag not in python_pure_tags:
                     raise RuntimeError(
-                        f"Wheel {f} is built for incorrect python version {python_tag}, this lockfile expects {python_binary_tag} or one of {python_pure_tags}"
+                        f"Wheel {f} is built for incorrect python version {python_tag},"
+                        f"this lockfile expects {python_binary_tag} "
+                        f"or one of {python_pure_tags}"
                     )
             elif platform_tag != target_platform:
                 raise RuntimeError(
-                    f"Wheel {f} is built for incorrect platform {platform_tag}, this lockfile expects {target_platform}"
+                    f"Wheel {f} is built for incorrect platform {platform_tag},"
+                    f"this lockfile expects {target_platform}"
                 )
             else:
                 if python_tag != python_binary_tag:
                     raise RuntimeError(
-                        f"Wheel {f} is built for incorrect python version {python_tag}, this lockfile expects {python_binary_tag}"
+                        f"Wheel {f} is built for incorrect python version {python_tag},"
+                        f" this lockfile expects {python_binary_tag}"
                     )
 
             file_name = base_url + str(f.relative_to(base_path))
@@ -181,6 +184,7 @@ class PyodideLockSpec(BaseModel):
                 depends=[],
             )
             new_package_wheels[name] = f
+
         # now fix up the dependencies for each of our new packages
         # n.b. this assumes existing packages have correct dependencies,
         # which is probably a good assumption.
@@ -202,43 +206,46 @@ class PyodideLockSpec(BaseModel):
                         # or optional requirement
                         continue
                 if r.extras:
-                    # this requirement has some extras, we need to check that the dependency package
-                    # depends on whatever needs these extras also.
+                    # this requirement has some extras, we need to check
+                    # that the required package depends on these extras also.
                     requirements_with_extras.append(r)
                 if req_name in new_packages or req_name in self.packages:
                     our_depends.append(req_name)
                 else:
-                    raise RuntimeError(f"Requirement {req_name} is not in this distribution.")
+                    raise RuntimeError(
+                        f"Requirement {req_name} is not in this distribution."
+                    )
             package.depends = our_depends
 
         while len(requirements_with_extras) != 0:
             extra_req = requirements_with_extras.pop()
             extra_package_name = canonicalize_name(r.name)
-            if extra_package_name in new_packages:
-                package = new_packages[extra_package_name]
-                our_depends = package.depends
-                wheel_file = new_package_wheels[package.name]
-                requirements = get_wheel_dependencies(wheel_file, package.name)
-                for extra in extra_req.extras:
-                    for r in requirements:
-                        req_marker = r.marker
-                        req_name = canonicalize_name(r.name)
-                        if req_marker is not None:
-                            if req_marker.evaluate(
-                                {
-                                    "sys_platform": "emscripten",
-                                    "platform_system": "Emscripten",
-                                    "extra": extra,
-                                }
-                            ):
-                                if (
-                                    req_name in new_packages
-                                    or req_name in self.packages
-                                ):
-                                    our_depends.append(req_name)
-                                    if r.extras:
-                                        requirements_with_extras.append(r)
-                                else:
-                                    raise RuntimeError(f"Requirement {req_name} is not in this distribution.")
-                package.depends = our_depends
+            if extra_package_name not in new_packages:
+                continue
+            package = new_packages[extra_package_name]
+            our_depends = package.depends
+            wheel_file = new_package_wheels[package.name]
+            requirements = get_wheel_dependencies(wheel_file, package.name)
+            for extra in extra_req.extras:
+                for r in requirements:
+                    req_marker = r.marker
+                    req_name = canonicalize_name(r.name)
+                    if req_marker is None:
+                        continue
+                    if req_marker.evaluate(
+                        {
+                            "sys_platform": "emscripten",
+                            "platform_system": "Emscripten",
+                            "extra": extra,
+                        }
+                    ):
+                        if req_name in new_packages or req_name in self.packages:
+                            our_depends.append(req_name)
+                            if r.extras:
+                                requirements_with_extras.append(r)
+                        else:
+                            raise RuntimeError(
+                                f"Requirement {req_name} is not in this distribution."
+                            )
+            package.depends = our_depends
         self.packages.update(new_packages)

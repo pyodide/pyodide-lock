@@ -1,7 +1,7 @@
-import typer
 from pathlib import Path
-from typing import List
-from typing_extensions import Annotated
+from typing import Annotated
+
+import typer
 
 from ..spec import PyodideLockSpec
 
@@ -11,7 +11,7 @@ main = typer.Typer()
 @main.command()
 def add_wheels(
     wheels: Annotated[
-        List[Path],
+        list[Path],
         typer.Argument(help="list of wheels to add to the lockfile", default="[]"),
     ],
     in_lockfile: Path = Path("pyodide-lock.json"),
