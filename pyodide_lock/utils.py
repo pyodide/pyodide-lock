@@ -31,10 +31,10 @@ def parse_top_level_import_name(whlfile: Path) -> list[str] | None:
     # then just use that
     for subdir in whlzip.iterdir():
         if subdir.name.endswith(".dist-info"):
-            top_level_path=subdir / "top_level.txt"
+            top_level_path = subdir / "top_level.txt"
             if top_level_path.exists():
                 return top_level_path.read_text().splitlines()
-    
+
     # If there is no top_level.txt file, we will find top level imports by
     # 1) a python file on a top-level directory
     # 2) a sub directory with __init__.py
@@ -90,12 +90,13 @@ def _generate_package_hash(full_path: Path) -> str:
             sha256_hash.update(chunk)
     return sha256_hash.hexdigest()
 
+
 def get_wheel_dependencies(wheel_path: Path, pkg_name: str) -> list[str]:
     deps = []
     if not wheel_path.name.endswith(".whl"):
         raise RuntimeError(f"{wheel_path} is not a wheel file.")
     with ZipFile(wheel_path, mode="r") as wheel:
-        dist_info_dir = get_wheel_dist_info_dir(wheel,pkg_name)
+        dist_info_dir = get_wheel_dist_info_dir(wheel, pkg_name)
         metadata_path = f"{dist_info_dir}/METADATA"
         p = BytesParser()
         headers = p.parse(wheel.open(metadata_path), headersonly=True)
@@ -103,6 +104,7 @@ def get_wheel_dependencies(wheel_path: Path, pkg_name: str) -> list[str]:
         for r in requires:
             deps.append(Requirement(r))
     return deps
+
 
 def get_wheel_dist_info_dir(wheel: ZipFile, pkg_name: str) -> str:
     """Returns the path of the contained .dist-info directory.
