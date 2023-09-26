@@ -6,7 +6,6 @@ from pydantic import BaseModel, ConfigDict
 
 from .utils import (
     _generate_package_hash,
-    _normalized_name,
     _wheel_depends,
     parse_top_level_import_name,
 )
@@ -50,6 +49,7 @@ class PackageSpec(BaseModel):
         may require further postprocessing.
         """
         import pkginfo
+        from packaging.utils import canonicalize_name
 
         metadata = pkginfo.get_metadata(str(path))
 
@@ -57,7 +57,7 @@ class PackageSpec(BaseModel):
             raise RuntimeError(f"Could not parse wheel metadata from {path.name}")
 
         return PackageSpec(
-            name=_normalized_name(metadata.name),
+            name=canonicalize_name(metadata.name),
             version=metadata.version,
             file_name=path.name,
             sha256=_generate_package_hash(path),

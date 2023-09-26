@@ -97,21 +97,15 @@ def _generate_package_hash(full_path: Path) -> str:
     return sha256_hash.hexdigest()
 
 
-def _normalized_name(raw_name: str) -> str:
-    """Get a PEP 503 normalized name for a python package.
-
-    https://peps.python.org/pep-0503/#normalized-names
-    """
-    return re.sub(r"[-_.]+", "-", raw_name).lower()
-
-
 def _wheel_depends(
     metadata: "Distribution", marker_env: None | dict[str, str] = None
 ) -> list[str]:
     """Get the normalized runtime distribution dependencies from wheel metadata.
 
     ``marker_env`` is an optional dictionary of platform information, used to find
-    platform-specific requirments.
+    platform-specific requirements as per PEP 508.
+
+    https://peps.python.org/pep-0508
 
     An accurate enumeration can be generated inside the target pyodide environment
     such as the example below:
@@ -120,17 +114,19 @@ def _wheel_depends(
 
         from packaging.markers import default_environment
         print(default_enviroment())
+
     """
     from packaging.requirements import Requirement
+    from packaging.utils import canonicalize_name
 
     depends: list[str] = []
 
-    env = {} if "pyodide" in sys.modules else _PYODIDE_MARKER_ENV
+    env = dict({} if "pyodide" in sys.modules else _PYODIDE_MARKER_ENV)
     env.update(marker_env or {})
 
     for dep_str in metadata.requires_dist:
         req = Requirement(re.sub(r";$", "", dep_str))
         if req.marker is None or req.marker.evaluate(env):
-            depends += [_normalized_name(req.name)]
+            depends += [canonicalize_name(req.name)]
 
     return sorted(set(depends))
