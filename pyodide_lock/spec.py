@@ -2,7 +2,7 @@ import json
 from pathlib import Path
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, Extra
 
 from .utils import (
     _generate_package_hash,
@@ -12,17 +12,16 @@ from .utils import (
 
 
 class InfoSpec(BaseModel):
-    model_config = ConfigDict(extra="forbid")
-
     arch: Literal["wasm32", "wasm64"] = "wasm32"
     platform: str
     version: str
     python: str
 
+    class Config:
+        extra = Extra.forbid
+
 
 class PackageSpec(BaseModel):
-    model_config = ConfigDict(extra="forbid")
-
     name: str
     version: str
     file_name: str
@@ -36,6 +35,9 @@ class PackageSpec(BaseModel):
     unvendored_tests: bool = False
     # This field is deprecated
     shared_library: bool = False
+
+    class Config:
+        extra = Extra.forbid
 
     @classmethod
     def from_wheel(
@@ -76,22 +78,23 @@ class PackageSpec(BaseModel):
 class PyodideLockSpec(BaseModel):
     """A specification for the pyodide-lock.json file."""
 
-    model_config = ConfigDict(extra="forbid")
-
     info: InfoSpec
     packages: dict[str, PackageSpec]
+
+    class Config:
+        extra = Extra.forbid
 
     @classmethod
     def from_json(cls, path: Path) -> "PyodideLockSpec":
         """Read the lock spec from a json file."""
-        with path.open("r") as fh:
+        with path.open("r", encoding="utf-8") as fh:
             data = json.load(fh)
         return cls(**data)
 
     def to_json(self, path: Path, indent: int | None = None) -> None:
         """Write the lock spec to a json file."""
-        with path.open("w") as fh:
-            json.dump(self.model_dump(), fh, indent=indent)
+        with path.open("w", encoding="utf-8") as fh:
+            fh.write(self.json(indent=indent, sort_keys=True))
 
     def check_wheel_filenames(self) -> None:
         """Check that the package name and version are consistent in wheel filenames"""

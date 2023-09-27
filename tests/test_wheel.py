@@ -46,7 +46,7 @@ NOT_NUM_MARKER_EXAMPLES: "TDepExamples" = {
 def test_self_wheel():
     assert WHEEL is not None
 
-    spec = PackageSpec.from_wheel(WHEEL).model_dump_json(indent=2)
+    spec = PackageSpec.from_wheel(WHEEL).json(indent=2, sort_keys=True)
 
     expected = PackageSpec(
         name="pyodide-lock",
@@ -59,7 +59,7 @@ def test_self_wheel():
         depends=["pydantic"],
         unvendored_tests=False,
         shared_library=False,
-    ).model_dump_json(indent=2)
+    ).json(indent=2, sort_keys=True)
 
     assert spec == expected
 
