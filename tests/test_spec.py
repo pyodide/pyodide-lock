@@ -119,11 +119,11 @@ def test_extra_config_forbidden():
     info_data["extra"] = "extra"  # type: ignore[index]
     package_data["extra"] = "extra"
 
-    with pytest.raises(ValidationError, match="Extra inputs are not permitted"):
+    with pytest.raises(ValidationError, match="extra fields not permitted"):
         PyodideLockSpec(**lock_data)
 
-    with pytest.raises(ValidationError, match="Extra inputs are not permitted"):
+    with pytest.raises(ValidationError, match="extra fields not permitted"):
         InfoSpec(**info_data)  # type: ignore[arg-type]
 
-    with pytest.raises(ValidationError, match="Extra inputs are not permitted"):
+    with pytest.raises(ValidationError, match="extra fields not permitted"):
         PackageSpec(**package_data)

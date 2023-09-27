@@ -11,7 +11,8 @@ description = "Tooling to manage the `pyodide-lock.json` file"
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [
-   "pydantic"
+    # compatible with pyodide-build and the as-shipped wheel in the pyodide distribution
+    "pydantic >=1.10.2,<2",
 ]
 classifiers = [
     "Programming Language :: Python :: 3",
