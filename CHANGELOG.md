@@ -8,9 +8,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- Adds `PackageSpec.from_wheel` for generating a package spec from a `.whl` file
+- Pinned to `pydantic >=1.10.2,<2`
+  [#23](https://github.com/pyodide/pyodide-lock/pull/23)
+
+- Added `PackageSpec.from_wheel` for generating a package spec from a `.whl` file
   [#18](https://github.com/pyodide/pyodide-lock/pull/18)
-- Adds `parse_top_level_import_name` for finding importable names in `.whl` files
+
+- Added `parse_top_level_import_name` for finding importable names in `.whl` files
   [#17](https://github.com/pyodide/pyodide-lock/pull/17)
 
 ## [0.1.0a3] - 2023-09-15
@@ -26,6 +30,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.1.0a2] - 2023-07-21
 
 ### Added
+
  - Add `check_wheel_filenames` method to `PyodideLockSpec` that checks that the
    package name in version are consistent between the wheel filename and the
    corresponding pyodide-lock.json fields
