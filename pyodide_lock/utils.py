@@ -113,6 +113,7 @@ def _get_marker_environment(platform: str, version: str, arch: str, python: str)
     """
 
     try:
+        exec("import pyodide")
         from packaging.markers import default_environment
 
         return default_environment()
