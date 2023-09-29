@@ -1,30 +1,33 @@
 import json
+import re
 from pathlib import Path
-from typing import Literal
+from typing import TYPE_CHECKING, Literal
 
-from packaging.utils import canonicalize_name
-from packaging.version import parse as version_parse
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, Extra
+
+if TYPE_CHECKING:
+    from packaging.requirements import Requirement
 
 from .utils import (
     _generate_package_hash,
-    get_wheel_dependencies,
+    _get_marker_environment,
+    _wheel_depends,
+    _wheel_metadata,
     parse_top_level_import_name,
 )
 
 
 class InfoSpec(BaseModel):
-    model_config = ConfigDict(extra="forbid")
-
     arch: Literal["wasm32", "wasm64"] = "wasm32"
     platform: str
     version: str
     python: str
 
+    class Config:
+        extra = Extra.forbid
+
 
 class PackageSpec(BaseModel):
-    model_config = ConfigDict(extra="forbid")
-
     name: str
     version: str
     file_name: str
@@ -39,6 +42,78 @@ class PackageSpec(BaseModel):
     # This field is deprecated
     shared_library: bool = False
 
+    class Config:
+        extra = Extra.forbid
+
+    @classmethod
+    def _from_wheel(cls, path: Path, info: InfoSpec) -> "PackageSpec":
+        """Build a package spec from an on-disk wheel.
+
+        This is internal, because to reliably handle dependencies, we need:
+          1) To have access to all the wheels being added at once (to handle extras)
+          2) To know whether dependencies are available in the combined lockfile.
+          3) To fix up wheel urls and paths consistently
+
+          This is called by PyodideLockSpec.add_wheels below.
+        """
+        from packaging.utils import (
+            InvalidWheelFilename,
+            canonicalize_name,
+            parse_wheel_filename,
+        )
+        from packaging.version import InvalidVersion
+        from packaging.version import parse as version_parse
+
+        path = path.absolute()
+        # throw an error if this is an incompatible wheel
+        target_python = version_parse(info.python)
+        target_platform = info.platform + "_" + info.arch
+        try:
+            (name, version, build_number, tags) = parse_wheel_filename(str(path.name))
+        except (InvalidWheelFilename, InvalidVersion) as e:
+            raise RuntimeError(f"Wheel filename {path.name} is not valid") from e
+        python_binary_abi = f"cp{target_python.major}{target_python.minor}"
+        tags = list(tags)
+        tag_match = False
+        for t in tags:
+            # abi should be
+            if (
+                t.abi == python_binary_abi
+                and t.interpreter == python_binary_abi
+                and t.platform == target_platform
+            ):
+                tag_match = True
+            elif t.abi == "none" and t.platform == "any":
+                match = re.match(rf"py{target_python.major}(\d*)", t.interpreter)
+                if match:
+                    subver = match.group(1)
+                    if len(subver) == 0 or int(subver) <= target_python.minor:
+                        tag_match = True
+        if not tag_match:
+            raise RuntimeError(
+                f"Package tags {tags} don't match Python version in lockfile:"
+                f"Lockfile python {target_python.major}.{target_python.minor}"
+                f"on platform {target_platform} ({python_binary_abi})"
+            )
+        metadata = _wheel_metadata(path)
+
+        if not metadata:
+            raise RuntimeError(f"Could not parse wheel metadata from {path.name}")
+
+        # returns a draft PackageSpec with:
+        # 1) absolute path to wheel,
+        # 2) empty dependency list
+        return PackageSpec(
+            name=canonicalize_name(metadata.name),
+            version=metadata.version,
+            file_name=str(path),
+            sha256=_generate_package_hash(path),
+            package_type="package",
+            install_dir="site",
+            imports=parse_top_level_import_name(path),
+            depends=[],
+        )
+
     def update_sha256(self, path: Path) -> "PackageSpec":
         """Update the sha256 hash for a package."""
         self.sha256 = _generate_package_hash(path)
@@ -48,26 +123,23 @@ class PackageSpec(BaseModel):
 class PyodideLockSpec(BaseModel):
     """A specification for the pyodide-lock.json file."""
 
-    model_config = ConfigDict(extra="forbid")
-
     info: InfoSpec
     packages: dict[str, PackageSpec]
+
+    class Config:
+        extra = Extra.forbid
 
     @classmethod
     def from_json(cls, path: Path) -> "PyodideLockSpec":
         """Read the lock spec from a json file."""
-        with path.open("r") as fh:
+        with path.open("r", encoding="utf-8") as fh:
             data = json.load(fh)
         return cls(**data)
 
     def to_json(self, path: Path, indent: int | None = None) -> None:
         """Write the lock spec to a json file."""
-        with path.open("w") as fh:
-            # old vs new pydantic
-            if hasattr(self, "model_dump"):
-                json.dump(self.model_dump(), fh, indent=indent)
-            else:
-                json.dump(self.dict(), fh, indent=indent)
+        with path.open("w", encoding="utf-8") as fh:
+            fh.write(self.json(indent=indent, sort_keys=True))
 
     def check_wheel_filenames(self) -> None:
         """Check that the package name and version are consistent in wheel filenames"""
@@ -102,11 +174,12 @@ class PyodideLockSpec(BaseModel):
             )
             raise ValueError(error_msg)
 
-    def add_wheels(  # noqa: C901
+    def add_wheels(
         self,
         wheel_files: list[Path],
         base_path: Path | None = None,
         base_url: str = "",
+        ignore_missing_dependencies: bool = False,
     ) -> None:
         """Add a list of wheel files to this pyodide-lock.json
 
@@ -125,83 +198,43 @@ class PyodideLockSpec(BaseModel):
         """
         if len(wheel_files) <= 0:
             return
+        wheel_files = [f.resolve() for f in wheel_files]
         if base_path is None:
             base_path = wheel_files[0].parent
-
-        target_python = version_parse(self.info.python)
-        python_binary_tag = f"cp{target_python.major}{target_python.minor}"
-        python_pure_tags = [
-            f"py2.py{target_python.major}",
-            f"py{target_python.major}",
-            f"py{target_python.major}{target_python.minor}",
-        ]
-
-        target_platform = self.info.platform + "_" + self.info.arch
+        else:
+            base_path = base_path.resolve()
 
         new_packages = {}
-        new_package_wheels = {}
         for f in wheel_files:
-            split_name = f.stem.split("-")
-            name = canonicalize_name(split_name[0])
-            version = split_name[1]
-            python_tag = split_name[-3]
-            split_name[-2]
-            platform_tag = split_name[-1]
+            spec = PackageSpec._from_wheel(f, info=self.info)
 
-            if platform_tag == "any":
-                if python_tag not in python_pure_tags:
-                    raise RuntimeError(
-                        f"Wheel {f} is built for incorrect python version {python_tag},"
-                        f"this lockfile expects {python_binary_tag} "
-                        f"or one of {python_pure_tags}"
-                    )
-            elif platform_tag != target_platform:
-                raise RuntimeError(
-                    f"Wheel {f} is built for incorrect platform {platform_tag},"
-                    f"this lockfile expects {target_platform}"
-                )
-            else:
-                if python_tag != python_binary_tag:
-                    raise RuntimeError(
-                        f"Wheel {f} is built for incorrect python version {python_tag},"
-                        f" this lockfile expects {python_binary_tag}"
-                    )
+            new_packages[spec.name] = spec
 
-            file_name = base_url + str(f.relative_to(base_path))
-            install_dir = "site"
-            package_type = "package"
-            sha256 = _generate_package_hash(f)
-            imports = parse_top_level_import_name(f)
+        self._fix_new_package_deps(new_packages, ignore_missing_dependencies)
+        self._set_package_paths(new_packages, base_path, base_url)
+        self.packages |= new_packages
 
-            new_packages[name] = PackageSpec(
-                name=name,
-                version=version,
-                install_dir=install_dir,
-                file_name=file_name,
-                package_type=package_type,
-                sha256=sha256,
-                imports=imports,
-                depends=[],
-            )
-            new_package_wheels[name] = f
-
+    def _fix_new_package_deps(
+        self, new_packages: dict[str, PackageSpec], ignore_missing_dependencies: bool
+    ):
         # now fix up the dependencies for each of our new packages
         # n.b. this assumes existing packages have correct dependencies,
         # which is probably a good assumption.
+        from packaging.utils import canonicalize_name
 
         requirements_with_extras = []
+        marker_environment = _get_marker_environment(**self.info.dict())
         for package in new_packages.values():
             # add any requirements to the list of packages
             our_depends = []
-            wheel_file = new_package_wheels[package.name]
-            requirements = get_wheel_dependencies(wheel_file, package.name)
+            wheel_file = package.file_name
+            metadata = _wheel_metadata(wheel_file)
+            requirements = _wheel_depends(metadata)
             for r in requirements:
                 req_marker = r.marker
                 req_name = canonicalize_name(r.name)
                 if req_marker is not None:
-                    if not req_marker.evaluate(
-                        {"sys_platform": "emscripten", "platform_system": "Emscripten"}
-                    ):
+                    if not req_marker.evaluate(marker_environment):
                         # not used in pyodide / emscripten
                         # or optional requirement
                         continue
@@ -211,41 +244,72 @@ class PyodideLockSpec(BaseModel):
                     requirements_with_extras.append(r)
                 if req_name in new_packages or req_name in self.packages:
                     our_depends.append(req_name)
+                elif ignore_missing_dependencies:
+                    our_depends.append(req_name)
                 else:
                     raise RuntimeError(
-                        f"Requirement {req_name} is not in this distribution."
+                        f"Requirement {req_name} from {r} is not in this distribution."
                     )
             package.depends = our_depends
-
         while len(requirements_with_extras) != 0:
             extra_req = requirements_with_extras.pop()
-            extra_package_name = canonicalize_name(r.name)
-            if extra_package_name not in new_packages:
-                continue
-            package = new_packages[extra_package_name]
-            our_depends = package.depends
-            wheel_file = new_package_wheels[package.name]
-            requirements = get_wheel_dependencies(wheel_file, package.name)
-            for extra in extra_req.extras:
-                for r in requirements:
-                    req_marker = r.marker
-                    req_name = canonicalize_name(r.name)
+            requirements_with_extras.extend(
+                self._fix_extra_dep(
+                    extra_req, new_packages, ignore_missing_dependencies
+                )
+            )
+
+    # When requirements have extras, we need to make sure that the
+    # required package includes the dependencies for that extra.
+    # This is because extras aren't supported in pyodide-lock
+    def _fix_extra_dep(
+        self,
+        extra_req: "Requirement",
+        new_packages: dict[str, PackageSpec],
+        ignore_missing_dependencies: bool,
+    ):
+        from packaging.utils import canonicalize_name
+
+        requirements_with_extras = []
+
+        marker_environment = _get_marker_environment(**self.info.dict())
+        extra_package_name = canonicalize_name(extra_req.name)
+        if extra_package_name not in new_packages:
+            return
+        package = new_packages[extra_package_name]
+        our_depends = package.depends
+        wheel_file = package.file_name
+        metadata = _wheel_metadata(wheel_file)
+        requirements = _wheel_depends(metadata)
+        for extra in extra_req.extras:
+            this_marker_env = marker_environment.copy()
+            this_marker_env["extra"] = extra
+
+            for r in requirements:
+                req_marker = r.marker
+                req_name = canonicalize_name(r.name)
+                if req_name not in our_depends:
                     if req_marker is None:
+                        # no marker - this will have been processed above
                         continue
-                    if req_marker.evaluate(
-                        {
-                            "sys_platform": "emscripten",
-                            "platform_system": "Emscripten",
-                            "extra": extra,
-                        }
-                    ):
+                    if req_marker.evaluate(this_marker_env):
                         if req_name in new_packages or req_name in self.packages:
                             our_depends.append(req_name)
                             if r.extras:
                                 requirements_with_extras.append(r)
+                        elif ignore_missing_dependencies:
+                            our_depends.append(req_name)
                         else:
                             raise RuntimeError(
                                 f"Requirement {req_name} is not in this distribution."
                             )
-            package.depends = our_depends
-        self.packages.update(new_packages)
+        package.depends = our_depends
+        return requirements_with_extras
+
+    def _set_package_paths(
+        self, new_packages: dict[str, PackageSpec], base_path: Path, base_url: str
+    ):
+        for p in new_packages.values():
+            current_path = Path(p.file_name)
+            relative_path = current_path.relative_to(base_path)
+            p.file_name = base_url + str(relative_path)

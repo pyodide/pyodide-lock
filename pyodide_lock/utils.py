@@ -1,15 +1,32 @@
 import hashlib
 import logging
+import re
 import zipfile
 from collections import deque
-from email.parser import BytesParser
+from functools import cache
 from pathlib import Path
-from zipfile import ZipFile
+from typing import TYPE_CHECKING
 
-from packaging.requirements import Requirement
-from packaging.utils import canonicalize_name as canonicalize_package_name
+if TYPE_CHECKING:
+    from packaging.requirements import Requirement
+    from pkginfo import Distribution
 
 logger = logging.getLogger(__name__)
+
+#: the last-observed state of ``packaging.markers.default_environment`` in ``pyodide``
+_PYODIDE_MARKER_ENV = {
+    "implementation_name": "cpython",
+    "implementation_version": "3.11.3",
+    "os_name": "posix",
+    "platform_machine": "wasm32",
+    "platform_release": "3.1.45",
+    "platform_system": "Emscripten",
+    "platform_version": "#1",
+    "python_full_version": "3.11.3",
+    "platform_python_implementation": "CPython",
+    "python_version": "3.11",
+    "sys_platform": "emscripten",
+}
 
 
 def parse_top_level_import_name(whlfile: Path) -> list[str] | None:
@@ -89,52 +106,49 @@ def _generate_package_hash(full_path: Path) -> str:
     return sha256_hash.hexdigest()
 
 
-def get_wheel_dependencies(wheel_path: Path, pkg_name: str) -> list[Requirement]:
-    deps = []
-    if not wheel_path.name.endswith(".whl"):
-        raise RuntimeError(f"{wheel_path} is not a wheel file.")
-    with ZipFile(wheel_path, mode="r") as wheel:
-        dist_info_dir = get_wheel_dist_info_dir(wheel, pkg_name)
-        metadata_path = f"{dist_info_dir}/METADATA"
-        p = BytesParser()
-        headers = p.parse(wheel.open(metadata_path), headersonly=True)
-        requires: list[str] = headers.get_all("Requires-Dist", failobj=[])
-        for r in requires:
-            deps.append(Requirement(r))
-    return deps
-
-
-def get_wheel_dist_info_dir(wheel: ZipFile, pkg_name: str) -> str:
-    """Returns the path of the contained .dist-info directory.
-
-    Raises an Exception if the directory is not found, more than
-    one is found, or it does not match the provided `pkg_name`.
-
-    Adapted from:
-    https://github.com/pypa/pip/blob/ea727e4d6ab598f34f97c50a22350febc1214a97/src/pip/_internal/utils/wheel.py#L38
+def _get_marker_environment(platform: str, version: str, arch: str, python: str):
+    """
+    Get the marker environment for this pyodide-lock file. If running
+    inside pyodide it returns the current marker environment.
     """
 
-    # Zip file path separators must be /
-    subdirs = {name.split("/", 1)[0] for name in wheel.namelist()}
-    info_dirs = [subdir for subdir in subdirs if subdir.endswith(".dist-info")]
+    try:
+        from packaging.markers import default_environment
 
-    if len(info_dirs) == 0:
-        raise Exception(f".dist-info directory not found for {pkg_name}")
+        return default_environment()
+    except ImportError:
+        marker_env = _PYODIDE_MARKER_ENV.copy()
+        from packaging.version import parse as version_parse
 
-    if len(info_dirs) > 1:
-        raise Exception(
-            f"multiple .dist-info directories found for {pkg_name}:"
-            f"{', '.join(info_dirs)}"
-        )
+        target_python = version_parse(python)
+        match = re.match("([^_]+)_(.*)", platform)
+        if match is not None:
+            marker_env["sys_platform"] = match.group(1)
+            marker_env["platform_release"] = match.group(2)
+        marker_env["implementation_version"] = python
+        marker_env["python_full_version"] = python
+        marker_env["python_version"] = f"{target_python.major}.{target_python.minor}"
+        marker_env["platform_machine"] = arch
+        return marker_env
 
-    (info_dir,) = info_dirs
 
-    info_dir_name = canonicalize_package_name(info_dir)
-    canonical_name = canonicalize_package_name(pkg_name)
+@cache
+def _wheel_metadata(path: Path):
+    """Cached wheel metadata to save opening the file multiple times"""
+    from pkginfo import get_metadata
 
-    if not info_dir_name.startswith(canonical_name):
-        raise Exception(
-            f".dist-info directory {info_dir!r} does not start with {canonical_name!r}"
-        )
+    metadata = get_metadata(str(path))
+    return metadata
 
-    return info_dir
+
+def _wheel_depends(metadata: "Distribution") -> list["Requirement"]:
+    """Get distribution dependencies from wheel metadata."""
+    from packaging.requirements import Requirement
+
+    depends: list[Requirement] = []
+
+    for dep_str in metadata.requires_dist:
+        req = Requirement(dep_str)
+        depends.append(req)
+
+    return depends
