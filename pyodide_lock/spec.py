@@ -2,9 +2,10 @@ import json
 from pathlib import Path
 from typing import Literal
 
-from pydantic import BaseModel, Extra
+from pydantic import BaseModel, Extra, Field
 
 from .utils import (
+    _add_required,
     _generate_package_hash,
     _wheel_depends,
     parse_top_level_import_name,
@@ -12,32 +13,113 @@ from .utils import (
 
 
 class InfoSpec(BaseModel):
-    arch: Literal["wasm32", "wasm64"] = "wasm32"
-    platform: str
-    version: str
-    python: str
+    arch: Literal["wasm32", "wasm64"] = Field(
+        default="wasm32",
+        description=(
+            "the short name for the compiled architecture, available in "
+            "dependency markers as `platform_machine`"
+        ),
+    )
+    platform: str = Field(
+        description=(
+            "the emscripten virtual machine for which this distribution is "
+            " compiled, not available directly in a dependency marker: use e.g. "
+            """`plaform_system == "Emscripten" and platform_release == "3.1.45"`"""
+        ),
+        examples=["emscripten_3_1_32", "emscripten_3_1_45"],
+    )
+    version: str = Field(
+        description="the PEP 440 version of pyodide",
+        examples=["0.24.1", "0.23.3"],
+    )
+    python: str = Field(
+        description=(
+            "the version of python for which this lockfile is valid, available in "
+            "version markers as `platform_machine`"
+        ),
+        examples=["3.11.2", "3.11.3"],
+    )
 
     class Config:
         extra = Extra.forbid
+
+        schema_extra = _add_required(
+            "arch",
+            description=(
+                "the execution environment in which the packages in this lockfile "
+                "can be installed"
+            ),
+        )
 
 
 class PackageSpec(BaseModel):
-    name: str
-    version: str
-    file_name: str
-    install_dir: str
-    sha256: str = ""
+    name: str = Field(
+        description="the verbatim name as found in the package's metadata",
+        examples=["pyodide-lock", "PyYAML", "ruamel.yaml"],
+    )
+    version: str = Field(
+        description="the reported version of the package",
+        examples=["0.1.0", "1.0.0a0", "1.0.0a0.post1"],
+    )
+    file_name: str = Field(
+        format="uri-reference",
+        description="the URL of the file",
+        examples=[
+            "pyodide_lock-0.1.0-py3-none-any.whl",
+            "https://files.pythonhosted.org/packages/py3/m/micropip/micropip-0.5.0-py3-none-any.whl",
+        ],
+    )
+    install_dir: str = Field(
+        default="site",
+        description="the file system destination for a package's data",
+        examples=["dynlib", "stdlib"],
+    )
+    sha256: str = Field(description="the SHA256 cryptographic hash of the file")
     package_type: Literal[
         "package", "cpython_module", "shared_library", "static_library"
-    ] = "package"
-    imports: list[str] = []
-    depends: list[str] = []
-    unvendored_tests: bool = False
+    ] = Field(
+        default="package",
+        description="the top-level kind of content provided by this package",
+    )
+    imports: list[str] = Field(
+        default=[],
+        description=(
+            "the importable names provided by this package."
+            "note that PEP 420 namespace packages will likely not be correctly found."
+        ),
+    )
+    depends: list[str] = Field(
+        default=[],
+        unique_items=True,
+        description=(
+            "package names that must be installed when this package in installed"
+        ),
+    )
+    unvendored_tests: bool = Field(
+        default=False,
+        description=(
+            "whether the package's tests folder have been repackaged "
+            "as a separate archive"
+        ),
+    )
     # This field is deprecated
-    shared_library: bool = False
+    shared_library: bool = Field(
+        default=False,
+        deprecated=True,
+        description=(
+            "(deprecated) whether this package is a shared library. "
+            "replaced with `package_type: shared_library`"
+        ),
+    )
 
     class Config:
         extra = Extra.forbid
+        schema_extra = _add_required(
+            "depends",
+            "imports",
+            "install_dir",
+            description="a single pyodide-compatible file",
+        )
 
     @classmethod
     def from_wheel(
@@ -78,11 +160,27 @@ class PackageSpec(BaseModel):
 class PyodideLockSpec(BaseModel):
     """A specification for the pyodide-lock.json file."""
 
-    info: InfoSpec
-    packages: dict[str, PackageSpec]
+    info: InfoSpec = Field(
+        description=(
+            "the execution environment in which the packages in this lockfile "
+            "can be installable"
+        )
+    )
+    packages: dict[str, PackageSpec] = Field(
+        default={},
+        description="a set of packages keyed by name",
+    )
 
     class Config:
         extra = Extra.forbid
+        schema_extra = {
+            "$schema": "https://json-schema.org/draft/2019-09/schema#",
+            "$id": ("https://pyodide.org/schema/pyodide-lock/v0-lockfile.schema.json"),
+            "description": (
+                "a description of a viable pyodide runtime environment, "
+                "as defined by pyodide-lock"
+            ),
+        }
 
     @classmethod
     def from_json(cls, path: Path) -> "PyodideLockSpec":
