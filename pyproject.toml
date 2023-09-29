@@ -33,6 +33,7 @@ dev = [
     # from wheel
     "pkginfo",
     "packaging",
+    "wheel"
 ]
 
 [project.urls]
