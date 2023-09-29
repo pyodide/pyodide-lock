@@ -275,7 +275,7 @@ class PyodideLockSpec(BaseModel):
         marker_environment = _get_marker_environment(**self.info.dict())
         extra_package_name = canonicalize_name(extra_req.name)
         if extra_package_name not in new_packages:
-            return
+            return []
         package = new_packages[extra_package_name]
         our_depends = package.depends
         wheel_file = package.file_name

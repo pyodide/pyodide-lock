@@ -1,5 +1,4 @@
 from pathlib import Path
-from typing import Annotated
 
 import typer
 
@@ -10,14 +9,45 @@ main = typer.Typer()
 
 @main.command()
 def add_wheels(
-    wheels: Annotated[
-        list[Path],
-        typer.Argument(help="list of wheels to add to the lockfile", default="[]"),
-    ],
-    in_lockfile: Path = Path("pyodide-lock.json"),
-    out_lockfile: Path = Path("pyodide-lock-new.json"),
+    wheels: list[Path],
+    ignore_missing_dependencies: bool = typer.Option(
+        help="If this is true, dependencies "
+        "which are not in the original lockfile or "
+        "the added wheels will be added to the lockfile. "
+        "Warning: This will allow a broken lockfile to "
+        "be created.",
+        default=False,
+    ),
+    in_lockfile: Path = typer.Option(
+        help="Source lockfile (input)", default=Path("pyodide-lock.json")
+    ),
+    out_lockfile: Path = typer.Option(
+        help="Updated lockfile (output)", default=Path("pyodide-lock-new.json")
+    ),
+    base_path: Path = typer.Option(
+        help="Base path for wheels - wheel file "
+        "names will be created relative to this path.",
+        default=None,
+    ),
+    wheel_url: str = typer.Option(
+        help="Base url which will be appended to the wheel location."
+        "Use this if you are hosting these wheels on a different "
+        "server to core pyodide packages",
+        default="",
+    ),
 ):
-    """Add a set of wheels to an existing pyodide-lock.json"""
+    """Add a set of wheels to an existing pyodide-lock.json.
+
+    Each package in the wheel will be added to the output lockfile,
+    including resolution of dependencies in the lock file. By default
+    this will fail if a dependency isn't available in either the
+    existing lock file, or in the set of new wheels.
+    """
     sp = PyodideLockSpec.from_json(in_lockfile)
-    sp.add_wheels(wheels)
+    sp.add_wheels(
+        wheels,
+        base_path=base_path,
+        base_url=wheel_url,
+        ignore_missing_dependencies=ignore_missing_dependencies,
+    )
     sp.to_json(out_lockfile)
