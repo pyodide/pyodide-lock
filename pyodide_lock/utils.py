@@ -4,8 +4,9 @@ import re
 import sys
 import zipfile
 from collections import deque
+from collections.abc import Callable
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     from pkginfo import Distribution
@@ -130,3 +131,13 @@ def _wheel_depends(
             depends += [canonicalize_name(req.name)]
 
     return sorted(set(depends))
+
+
+def _add_required(
+    *field_names: str, **extra: Any
+) -> Callable[[dict[str, Any], Any], None]:
+    def add_required(schema: dict[str, Any], *args: Any) -> None:
+        schema["required"] = sorted([*field_names, *schema.get("required", [])])
+        schema.update(extra)
+
+    return add_required

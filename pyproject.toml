@@ -26,6 +26,10 @@ wheel = [
     "pkginfo",
     "packaging",
 ]
+schema = [
+    "jsonschema >=4",
+    "rfc3986-validator",
+]
 dev = [
     "pytest",
     "pytest-cov",
@@ -33,6 +37,11 @@ dev = [
     # from wheel
     "pkginfo",
     "packaging",
+    # from schema
+    "jsonschema >=4",
+    "rfc3986-validator",
+    # stubs
+    "types-jsonschema",
 ]
 
 [project.urls]
