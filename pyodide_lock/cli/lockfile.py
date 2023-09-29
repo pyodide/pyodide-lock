@@ -36,12 +36,14 @@ def add_wheels(
         default="",
     ),
 ):
-    """Add a set of wheels to an existing pyodide-lock.json.
+    """Add a set of package wheels to an existing pyodide-lock.json and
+    write it out to pyodide-lock-new.json
 
     Each package in the wheel will be added to the output lockfile,
     including resolution of dependencies in the lock file. By default
     this will fail if a dependency isn't available in either the
     existing lock file, or in the set of new wheels.
+
     """
     sp = PyodideLockSpec.from_json(in_lockfile)
     sp.add_wheels(
