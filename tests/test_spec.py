@@ -7,6 +7,7 @@ import pytest
 
 from pyodide_lock import PyodideLockSpec
 from pyodide_lock.spec import InfoSpec, PackageSpec
+from pyodide_lock.utils import update_package_sha256
 
 DATA_DIR = Path(__file__).parent / "data"
 
@@ -98,13 +99,13 @@ def test_to_json_indent(tmp_path):
 
 
 def test_update_sha256(monkeypatch):
-    monkeypatch.setattr("pyodide_lock.spec._generate_package_hash", lambda x: "abcd")
+    monkeypatch.setattr("pyodide_lock.utils._generate_package_hash", lambda x: "abcd")
     lock_data = deepcopy(LOCK_EXAMPLE)
 
     lock_data["packages"]["numpy"]["sha256"] = "0"  # type: ignore[index]
     spec = PyodideLockSpec(**lock_data)
     assert spec.packages["numpy"].sha256 == "0"
-    spec.packages["numpy"].update_sha256(Path("/some/path"))
+    update_package_sha256(spec.packages["numpy"], Path("/some/path"))
     assert spec.packages["numpy"].sha256 == "abcd"
 
 

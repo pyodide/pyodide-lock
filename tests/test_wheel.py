@@ -7,11 +7,14 @@ from tempfile import TemporaryDirectory
 
 import build
 import pytest
+from test_spec import LOCK_EXAMPLE
 
 from pyodide_lock import PackageSpec, PyodideLockSpec
-from pyodide_lock.utils import _generate_package_hash, _get_marker_environment
-
-from .test_spec import LOCK_EXAMPLE
+from pyodide_lock.utils import (
+    _generate_package_hash,
+    _get_marker_environment,
+    add_wheels_to_spec,
+)
 
 # we test if our own wheel imports nicely
 # so check if it is built in /dist, or else skip that test
@@ -130,7 +133,8 @@ def test_wheel_list():
 def test_add_one(test_wheel_list):
     lock_data = deepcopy(LOCK_EXAMPLE)
     spec = PyodideLockSpec(**lock_data)
-    spec.add_wheels(test_wheel_list[0:1])
+
+    add_wheels_to_spec(spec, test_wheel_list[0:1])
     # py_one only should get added
     assert spec.packages["py-one"].imports == ["one"]
 
@@ -138,7 +142,7 @@ def test_add_one(test_wheel_list):
 def test_add_simple_deps(test_wheel_list):
     lock_data = deepcopy(LOCK_EXAMPLE)
     spec = PyodideLockSpec(**lock_data)
-    spec.add_wheels(test_wheel_list[0:3])
+    add_wheels_to_spec(spec, test_wheel_list[0:3])
     # py_one, needs_one and needs_one_opt should get added
     assert "py-one" in spec.packages
     assert "needs-one" in spec.packages
@@ -152,7 +156,7 @@ def test_add_simple_deps(test_wheel_list):
 def test_add_deps_with_extras(test_wheel_list):
     lock_data = deepcopy(LOCK_EXAMPLE)
     spec = PyodideLockSpec(**lock_data)
-    spec.add_wheels(test_wheel_list[0:4])
+    add_wheels_to_spec(spec, test_wheel_list[0:4])
     # py_one, needs_one, needs_one_opt and test_extra_dependencies should get added
     # because of the extra dependency in test_extra_dependencies,
     # needs_one_opt should now depend on one
@@ -165,13 +169,13 @@ def test_missing_dep(test_wheel_list):
     spec = PyodideLockSpec(**lock_data)
     # this has a package with a missing dependency so should fail
     with pytest.raises(RuntimeError):
-        spec.add_wheels(test_wheel_list[0:5])
+        add_wheels_to_spec(spec, test_wheel_list[0:5])
 
 
 def test_path_rewriting(test_wheel_list):
     lock_data = deepcopy(LOCK_EXAMPLE)
     spec = PyodideLockSpec(**lock_data)
-    spec.add_wheels(test_wheel_list[0:3], base_url="http://www.nowhere.org/")
+    add_wheels_to_spec(spec, test_wheel_list[0:3], base_url="http://www.nowhere.org/")
     # py_one, needs_one and needs_one_opt should get added
     assert "py-one" in spec.packages
     assert "needs-one" in spec.packages
@@ -181,7 +185,8 @@ def test_path_rewriting(test_wheel_list):
     lock_data = deepcopy(LOCK_EXAMPLE)
     spec = PyodideLockSpec(**lock_data)
     # this should add the base path "dist" to the file name
-    spec.add_wheels(
+    add_wheels_to_spec(
+        spec,
         test_wheel_list[0:3],
         base_url="http://www.nowhere.org/",
         base_path=test_wheel_list[0].parent.parent,
@@ -199,7 +204,7 @@ def test_path_rewriting(test_wheel_list):
 def test_markers_not_needed(test_wheel_list):
     lock_data = deepcopy(LOCK_EXAMPLE)
     spec = PyodideLockSpec(**lock_data)
-    spec.add_wheels(test_wheel_list[5:6])
+    add_wheels_to_spec(spec, test_wheel_list[5:6])
     assert spec.packages["markers-not-needed-test"].depends == []
 
 
@@ -208,7 +213,7 @@ def test_markers_not_needed(test_wheel_list):
 def test_markers_needed(test_wheel_list):
     lock_data = deepcopy(LOCK_EXAMPLE)
     spec = PyodideLockSpec(**lock_data)
-    spec.add_wheels(test_wheel_list[6:7], ignore_missing_dependencies=True)
+    add_wheels_to_spec(spec, test_wheel_list[6:7], ignore_missing_dependencies=True)
     assert len(spec.packages["markers-needed-test"].depends) == len(
         MARKER_EXAMPLES_NEEDED
     )
@@ -219,7 +224,7 @@ def test_self_wheel():
     assert WHEEL is not None
     lock_data = deepcopy(LOCK_EXAMPLE)
     spec = PyodideLockSpec(**lock_data)
-    spec.add_wheels([WHEEL], ignore_missing_dependencies=True)
+    add_wheels_to_spec(spec, [WHEEL], ignore_missing_dependencies=True)
 
     expected = PackageSpec(
         name="pyodide-lock",
@@ -245,7 +250,7 @@ def test_not_wheel(tmp_path):
         whlzip.writestr("README.md", data="Not a wheel")
 
     with pytest.raises(RuntimeError, match="metadata"):
-        spec.add_wheels([wheel])
+        add_wheels_to_spec(spec, [wheel])
 
 
 @pytest.mark.parametrize(
@@ -262,4 +267,4 @@ def test_bad_names(tmp_path, bad_name):
     with zipfile.ZipFile(wheel, "w") as whlzip:
         whlzip.writestr("README.md", data="Not a wheel")
     with pytest.raises(RuntimeError, match="Wheel filename"):
-        spec.add_wheels([wheel])
+        add_wheels_to_spec(spec, [wheel])
