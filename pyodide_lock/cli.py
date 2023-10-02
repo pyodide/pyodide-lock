@@ -4,6 +4,7 @@ try:
     import typer
 
     from .spec import PyodideLockSpec
+    from .utils import add_wheels_to_spec
 
     main = typer.Typer()
 
@@ -46,7 +47,8 @@ try:
 
         """
         sp = PyodideLockSpec.from_json(in_lockfile)
-        sp.add_wheels(
+        add_wheels_to_spec(
+            sp,
             wheels,
             base_path=base_path,
             base_url=wheel_url,
