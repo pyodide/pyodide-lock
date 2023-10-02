@@ -83,4 +83,4 @@ addopts = '''
 --doctest-modules'''
 
 [project.entry-points."pyodide.cli"]
-lockfile = "pyodide_lock.cli.lockfile:main"
+lockfile = "pyodide_lock.cli:main"

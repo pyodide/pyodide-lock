@@ -3,7 +3,7 @@ from pathlib import Path
 try:
     import typer
 
-    from ..spec import PyodideLockSpec
+    from .spec import PyodideLockSpec
 
     main = typer.Typer()
 

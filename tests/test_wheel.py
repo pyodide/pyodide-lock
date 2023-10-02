@@ -7,10 +7,11 @@ from tempfile import TemporaryDirectory
 
 import build
 import pytest
-from test_spec import LOCK_EXAMPLE
 
 from pyodide_lock import PackageSpec, PyodideLockSpec
 from pyodide_lock.utils import _generate_package_hash, _get_marker_environment
+
+from .test_spec import LOCK_EXAMPLE
 
 # we test if our own wheel imports nicely
 # so check if it is built in /dist, or else skip that test

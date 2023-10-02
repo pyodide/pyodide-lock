@@ -3,7 +3,7 @@ import re
 from pathlib import Path
 from typing import TYPE_CHECKING, Literal
 
-from pydantic import BaseModel, Extra
+from pydantic import BaseModel, Extra, Field
 
 if TYPE_CHECKING:
     from packaging.requirements import Requirement
@@ -30,7 +30,9 @@ class InfoSpec(BaseModel):
 class PackageSpec(BaseModel):
     name: str
     version: str
-    file_name: str
+    file_name: str = Field(
+        description="Path (or URL) to wheel.", format="uri-reference"
+    )
     install_dir: str
     sha256: str = ""
     package_type: Literal[
