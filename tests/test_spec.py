@@ -11,28 +11,6 @@ from pyodide_lock.utils import update_package_sha256
 
 DATA_DIR = Path(__file__).parent / "data"
 
-LOCK_EXAMPLE = {
-    "info": {
-        "arch": "wasm32",
-        "platform": "emscripten_3_1_39",
-        "version": "0.24.0.dev0",
-        "python": "3.11.3",
-    },
-    "packages": {
-        "numpy": {
-            "name": "numpy",
-            "version": "1.24.3",
-            "file_name": "numpy-1.24.3-cp311-cp311-emscripten_3_1_39_wasm32.whl",
-            "install_dir": "site",
-            "sha256": (
-                "513af43ffb1f7d507c8d879c9f7e5" "d6c789ad21b6a67e5bca1d7cfb86bf8640f"
-            ),
-            "imports": ["numpy"],
-            "depends": [],
-        }
-    },
-}
-
 
 @pytest.mark.parametrize("pyodide_version", ["0.22.1", "0.23.3"])
 def test_lock_spec_parsing(pyodide_version, tmp_path):
@@ -55,14 +33,12 @@ def test_lock_spec_parsing(pyodide_version, tmp_path):
         assert spec.packages[key] == spec2.packages[key]
 
 
-def test_check_wheel_filenames():
-    lock_data = deepcopy(LOCK_EXAMPLE)
-
-    spec = PyodideLockSpec(**lock_data)
+def test_check_wheel_filenames(example_lock_data):
+    spec = PyodideLockSpec(**example_lock_data)
     spec.check_wheel_filenames()
 
-    lock_data["packages"]["numpy"]["name"] = "numpy2"  # type: ignore[index]
-    spec = PyodideLockSpec(**lock_data)
+    example_lock_data["packages"]["numpy"]["name"] = "numpy2"  # type: ignore[index]
+    spec = PyodideLockSpec(**example_lock_data)
     msg = (
         ".*check_wheel_filenames failed.*\n.*numpy:\n.*"
         "Package name in wheel filename 'numpy' does not match 'numpy2'"
@@ -70,8 +46,8 @@ def test_check_wheel_filenames():
     with pytest.raises(ValueError, match=msg):
         spec.check_wheel_filenames()
 
-    lock_data["packages"]["numpy"]["version"] = "0.2.3"  # type: ignore[index]
-    spec = PyodideLockSpec(**lock_data)
+    example_lock_data["packages"]["numpy"]["version"] = "0.2.3"  # type: ignore[index]
+    spec = PyodideLockSpec(**example_lock_data)
     msg = (
         ".*check_wheel_filenames failed.*\n.*numpy:\n.*"
         "Package name in wheel filename 'numpy' does not match 'numpy2'\n.*"
@@ -82,11 +58,10 @@ def test_check_wheel_filenames():
         spec.check_wheel_filenames()
 
 
-def test_to_json_indent(tmp_path):
-    lock_data = deepcopy(LOCK_EXAMPLE)
+def test_to_json_indent(tmp_path, example_lock_data):
     target_path = tmp_path / "pyodide-lock.json"
 
-    spec = PyodideLockSpec(**lock_data)
+    spec = PyodideLockSpec(**example_lock_data)
     spec.to_json(target_path)
 
     assert "\n" not in target_path.read_text()
@@ -98,30 +73,30 @@ def test_to_json_indent(tmp_path):
     assert "\n" in target_path.read_text()
 
 
-def test_update_sha256(monkeypatch):
+def test_update_sha256(monkeypatch, example_lock_data):
     monkeypatch.setattr("pyodide_lock.utils._generate_package_hash", lambda x: "abcd")
-    lock_data = deepcopy(LOCK_EXAMPLE)
 
-    lock_data["packages"]["numpy"]["sha256"] = "0"  # type: ignore[index]
-    spec = PyodideLockSpec(**lock_data)
+    example_lock_data["packages"]["numpy"]["sha256"] = "0"  # type: ignore[index]
+    spec = PyodideLockSpec(**example_lock_data)
     assert spec.packages["numpy"].sha256 == "0"
     update_package_sha256(spec.packages["numpy"], Path("/some/path"))
     assert spec.packages["numpy"].sha256 == "abcd"
 
 
-def test_extra_config_forbidden():
+def test_extra_config_forbidden(example_lock_data):
     from pydantic import ValidationError
 
-    lock_data = deepcopy(LOCK_EXAMPLE)
-    info_data = deepcopy(lock_data["info"])
-    package_data = deepcopy(lock_data["packages"]["numpy"])  # type: ignore[index]
+    info_data = deepcopy(example_lock_data["info"])
+    package_data = deepcopy(
+        example_lock_data["packages"]["numpy"]
+    )  # type: ignore[index]
 
-    lock_data["extra"] = "extra"
+    example_lock_data["extra"] = "extra"
     info_data["extra"] = "extra"  # type: ignore[index]
     package_data["extra"] = "extra"
 
     with pytest.raises(ValidationError, match="extra fields not permitted"):
-        PyodideLockSpec(**lock_data)
+        PyodideLockSpec(**example_lock_data)
 
     with pytest.raises(ValidationError, match="extra fields not permitted"):
         InfoSpec(**info_data)  # type: ignore[arg-type]
