@@ -156,8 +156,9 @@ def add_wheels_to_spec(
     base_path: Path | None = None,
     base_url: str = "",
     ignore_missing_dependencies: bool = False,
-) -> None:
-    """Add a list of wheel files to this pyodide-lock.json
+) -> PyodideLockSpec:
+    """Add a list of wheel files to this pyodide-lock.json and return a
+    new PyodideLockSpec
 
     Parameters:
     wheel_files : list[Path]
@@ -177,8 +178,9 @@ def add_wheels_to_spec(
         not 100% reliable, because it ignores any extras and does not do any
         sub-dependency or version resolution.
     """
+    new_spec = lock_spec.copy(deep=True)
     if not wheel_files:
-        return
+        return new_spec
     wheel_files = [f.resolve() for f in wheel_files]
     if base_path is None:
         base_path = wheel_files[0].parent
@@ -193,7 +195,8 @@ def add_wheels_to_spec(
 
     _fix_new_package_deps(lock_spec, new_packages, ignore_missing_dependencies)
     _set_package_paths(new_packages, base_path, base_url)
-    lock_spec.packages |= new_packages
+    new_spec.packages |= new_packages
+    return new_spec
 
 
 def _fix_new_package_deps(
