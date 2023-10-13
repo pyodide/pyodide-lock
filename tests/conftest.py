@@ -6,6 +6,7 @@ from tempfile import TemporaryDirectory
 
 import build
 import pytest
+from packaging.utils import canonicalize_name
 
 from pyodide_lock import PyodideLockSpec
 from pyodide_lock.utils import _get_marker_environment
@@ -87,8 +88,8 @@ def make_test_wheel(
 ):
     package_dir = dir / package_name
     package_dir.mkdir()
-    if modules is None:
-        modules = [package_name]
+    if not modules:
+        modules = [canonicalize_name(package_name).replace("-", "_")]
     for m in modules:
         (package_dir / f"{m}.py").write_text("")
     toml = package_dir / "pyproject.toml"

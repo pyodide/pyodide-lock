@@ -44,18 +44,12 @@ def parse_top_level_import_name(whlfile: Path) -> list[str] | None:
 
     whlzip = zipfile.Path(whlfile)
 
-    # if there is a directory with .dist_info at the end with a top_level.txt file
-    # then just use that
-    for subdir in whlzip.iterdir():
-        if subdir.name.endswith(".dist-info"):
-            top_level_path = subdir / "top_level.txt"
-            if top_level_path.exists():
-                return top_level_path.read_text().splitlines()
-
-    # If there is no top_level.txt file, we will find top level imports by
+    # We will find top level imports by
     # 1) a python file on a top-level directory
     # 2) a sub directory with __init__.py
     # following: https://github.com/pypa/setuptools/blob/d680efc8b4cd9aa388d07d3e298b870d26e9e04b/setuptools/discovery.py#L122
+    # - n.b. this is more reliable than using top-level.txt which is
+    # sometimes broken
     top_level_imports = []
     for subdir in whlzip.iterdir():
         if subdir.is_file() and subdir.name.endswith(".py"):
@@ -63,7 +57,6 @@ def parse_top_level_import_name(whlfile: Path) -> list[str] | None:
         elif subdir.is_dir() and _valid_package_name(subdir.name):
             if _has_python_file(subdir):
                 top_level_imports.append(subdir.name)
-
     if not top_level_imports:
         logger.warning(
             f"WARNING: failed to parse top level import name from {whlfile}."
@@ -166,20 +159,25 @@ def add_wheels_to_spec(
 ) -> None:
     """Add a list of wheel files to this pyodide-lock.json
 
-    Args:
-        wheel_files (list[Path]): A list of wheel files to import.
-        base_path (Path | None, optional):
-            Filenames are stored relative to this base path. By default the
-            filename is stored relative to the path of the first wheel file
-            in the list.
-
-        base_url (str, optional):
-            The base URL stored in the pyodide-lock.json. By default this
-            is empty which means that wheels must be stored in the same folder
-            as the core pyodide packages you are using. If you want to store
-            your custom wheels somewhere else, set this base_url to point to it.
+    Parameters:
+    wheel_files : list[Path]
+         A list of wheel files to import.
+    base_path : Path | None, optional
+        Filenames are stored relative to this base path. By default the
+        filename is stored relative to the path of the first wheel file
+        in the list.
+    base_url : str, optional
+        The base URL stored in the pyodide-lock.json. By default this
+        is empty which means that wheels must be stored in the same folder
+        as the core pyodide packages you are using. If you want to store
+        your custom wheels somewhere else, set this base_url to point to it.
+    ignore_missing_dependencies: bool, optional
+        If this is set to True, any dependencies not found in the lock file
+        or the set of wheels being added will be added to the spec. This is
+        not 100% reliable, because it ignores any extras and does not do any
+        sub-dependency or version resolution.
     """
-    if len(wheel_files) <= 0:
+    if not wheel_files:
         return
     wheel_files = [f.resolve() for f in wheel_files]
     if base_path is None:
@@ -254,7 +252,7 @@ def _fix_extra_dep(
     extra_req: "Requirement",
     new_packages: dict[str, PackageSpec],
     ignore_missing_dependencies: bool,
-):
+) -> list["Requirement"]:
     from packaging.utils import canonicalize_name
 
     requirements_with_extras = []
@@ -303,26 +301,14 @@ def _set_package_paths(
         p.file_name = base_url + str(relative_path)
 
 
-def package_spec_from_wheel(path: Path, info: InfoSpec) -> "PackageSpec":
-    """Build a package spec from an on-disk wheel.
-
-    Warning - to reliably handle dependencies, we need:
-        1) To have access to all the wheels being added at once (to handle extras)
-        2) To know whether dependencies are available in the combined lockfile.
-        3) To fix up wheel urls and paths consistently
-
-        This is called by add_wheels_to_spec
-    """
+def _check_wheel_compatible(path: Path, info: InfoSpec) -> None:
     from packaging.utils import (
         InvalidWheelFilename,
-        canonicalize_name,
         parse_wheel_filename,
     )
     from packaging.version import InvalidVersion
     from packaging.version import parse as version_parse
 
-    path = path.absolute()
-    # throw an error if this is an incompatible wheel
     target_python = version_parse(info.python)
     target_platform = info.platform + "_" + info.arch
     try:
@@ -349,10 +335,30 @@ def package_spec_from_wheel(path: Path, info: InfoSpec) -> "PackageSpec":
                     tag_match = True
     if not tag_match:
         raise RuntimeError(
-            f"Package tags {tags} don't match Python version in lockfile:"
+            f"Package tags for {path} don't match Python version in lockfile:"
             f"Lockfile python {target_python.major}.{target_python.minor}"
             f"on platform {target_platform} ({python_binary_abi})"
         )
+
+
+def package_spec_from_wheel(path: Path, info: InfoSpec) -> "PackageSpec":
+    """Build a package spec from an on-disk wheel.
+
+    Warning - to reliably handle dependencies, we need:
+        1) To have access to all the wheels being added at once (to handle extras)
+        2) To know whether dependencies are available in the combined lockfile.
+        3) To fix up wheel urls and paths consistently
+
+        This is called by add_wheels_to_spec
+    """
+    from packaging.utils import (
+        canonicalize_name,
+    )
+
+    path = path.absolute()
+    # throw an error if this is an incompatible wheel
+
+    _check_wheel_compatible(path, info)
     metadata = _wheel_metadata(path)
 
     if not metadata:

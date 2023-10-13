@@ -2,9 +2,11 @@ import zipfile
 from pathlib import Path
 
 import pytest
+from packaging.version import parse as version_parse
 
 from pyodide_lock import PackageSpec
 from pyodide_lock.utils import (
+    _check_wheel_compatible,
     _generate_package_hash,
     add_wheels_to_spec,
 )
@@ -140,3 +142,42 @@ def test_bad_names(tmp_path, bad_name, example_lock_spec):
         whlzip.writestr("README.md", data="Not a wheel")
     with pytest.raises(RuntimeError, match="Wheel filename"):
         add_wheels_to_spec(example_lock_spec, [wheel])
+
+
+def test_wheel_compatibility_checking(example_lock_spec):
+    target_python = version_parse(example_lock_spec.info.python)
+    python_tag = f"py{target_python.major}{target_python.minor}"
+    cpython_tag = f"cp{target_python.major}{target_python.minor}"
+    emscripten_tag = example_lock_spec.info.platform + "_" + example_lock_spec.info.arch
+
+    # pure python 3 wheel
+    _check_wheel_compatible(
+        Path("test_wheel-1.0.0-py3-none-any.whl"), example_lock_spec.info
+    )
+    # pure python 3.X wheel
+    _check_wheel_compatible(
+        Path(f"test_wheel-1.0.0-{python_tag}-none-any.whl"), example_lock_spec.info
+    )
+    # pure python 2 or 3 wheel
+    _check_wheel_compatible(
+        Path("test_wheel-1.0.0-py2.py3-none-any.whl"), example_lock_spec.info
+    )
+    # cpython emscripten correct version
+    _check_wheel_compatible(
+        Path(f"test_wheel-1.0.0-{cpython_tag}-{cpython_tag}-{emscripten_tag}.whl"),
+        example_lock_spec.info,
+    )
+    with pytest.raises(RuntimeError):
+        # cpython emscripten incorrect version
+        _check_wheel_compatible(
+            Path(
+                f"test_wheel-1.0.0-{cpython_tag}-{cpython_tag}-emscripten_3_1_2_wasm32.whl"
+            ),
+            example_lock_spec.info,
+        )
+    with pytest.raises(RuntimeError):
+        # a linux wheel
+        _check_wheel_compatible(
+            Path(f"test_wheel-1.0.0-{cpython_tag}-{cpython_tag}-linux_x86_64.whl"),
+            example_lock_spec.info,
+        )

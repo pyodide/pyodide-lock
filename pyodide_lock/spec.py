@@ -1,11 +1,8 @@
 import json
 from pathlib import Path
-from typing import TYPE_CHECKING, Literal
+from typing import Literal
 
 from pydantic import BaseModel, Extra, Field
-
-if TYPE_CHECKING:
-    pass
 
 
 class InfoSpec(BaseModel):
