@@ -1,6 +1,7 @@
 import hashlib
 import logging
 import re
+import sys
 import zipfile
 from collections import deque
 from functools import cache
@@ -101,18 +102,18 @@ def _generate_package_hash(full_path: Path) -> str:
     return sha256_hash.hexdigest()
 
 
-def _get_marker_environment(platform: str, version: str, arch: str, python: str):
+def _get_marker_environment(
+    platform: str, version: str, arch: str, python: str
+) -> dict[str, str]:
     """
     Get the marker environment for this pyodide-lock file. If running
     inside pyodide it returns the current marker environment.
     """
-
-    try:
-        exec("import pyodide")
+    if "pyodide" in sys.modules:
         from packaging.markers import default_environment
 
         return default_environment()
-    except ImportError:
+    else:
         marker_env = _PYODIDE_MARKER_ENV.copy()
         from packaging.version import parse as version_parse
 
@@ -129,7 +130,7 @@ def _get_marker_environment(platform: str, version: str, arch: str, python: str)
 
 
 @cache
-def _wheel_metadata(path: Path):
+def _wheel_metadata(path: Path) -> "Distribution":
     """Cached wheel metadata to save opening the file multiple times"""
     from pkginfo import get_metadata
 
@@ -344,7 +345,7 @@ def _check_wheel_compatible(path: Path, info: InfoSpec) -> None:
         )
 
 
-def package_spec_from_wheel(path: Path, info: InfoSpec) -> "PackageSpec":
+def package_spec_from_wheel(path: Path, info: InfoSpec) -> PackageSpec:
     """Build a package spec from an on-disk wheel.
 
     Warning - to reliably handle dependencies, we need:
