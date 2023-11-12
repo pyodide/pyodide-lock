@@ -22,6 +22,9 @@ classifiers = [
 dynamic = ["version"]
 
 [project.optional-dependencies]
+cli = [
+    "typer",
+]
 wheel = [
     "pkginfo",
     "packaging",
@@ -30,9 +33,11 @@ dev = [
     "pytest",
     "pytest-cov",
     "build",
+    "typer",
     # from wheel
     "pkginfo",
     "packaging",
+    "wheel"
 ]
 
 [project.urls]
@@ -76,3 +81,6 @@ select = [
 [tool.pytest.ini_options]
 addopts = '''
 --doctest-modules'''
+
+[project.entry-points."pyodide.cli"]
+lockfile = "pyodide_lock.cli:main"
