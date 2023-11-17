@@ -6,6 +6,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [0.1.0a4] - 2023-11-17
+
 ### Added
 
 - Pinned to `pydantic >=1.10.2,<2`
@@ -16,6 +18,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Added `parse_top_level_import_name` for finding importable names in `.whl` files
   [#17](https://github.com/pyodide/pyodide-lock/pull/17)
+
+- Added `pyodide lockfile add_wheels` CLI command.
+  [#20](https://github.com/pyodide/pyodide-lock/pull/20)
 
 ## [0.1.0a3] - 2023-09-15
 
