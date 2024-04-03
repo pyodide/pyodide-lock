@@ -179,7 +179,7 @@ def add_wheels_to_spec(
         not 100% reliable, because it ignores any extras and does not do any
         sub-dependency or version resolution.
     """
-    new_spec = lock_spec.copy(deep=True)
+    new_spec = lock_spec.model_copy(deep=True)
     if not wheel_files:
         return new_spec
     wheel_files = [f.resolve() for f in wheel_files]
@@ -211,7 +211,7 @@ def _fix_new_package_deps(
     from packaging.utils import canonicalize_name
 
     requirements_with_extras = []
-    marker_environment = _get_marker_environment(**lock_spec.info.dict())
+    marker_environment = _get_marker_environment(**lock_spec.info.model_dump())
     for package in new_packages.values():
         # add any requirements to the list of packages
         our_depends = []
@@ -261,7 +261,7 @@ def _fix_extra_dep(
 
     requirements_with_extras = []
 
-    marker_environment = _get_marker_environment(**lock_spec.info.dict())
+    marker_environment = _get_marker_environment(**lock_spec.info.model_dump())
     extra_package_name = canonicalize_name(extra_req.name)
     if extra_package_name not in new_packages:
         return []

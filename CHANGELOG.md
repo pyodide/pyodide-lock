@@ -6,6 +6,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [0.1.0a5] - 2024-04-03
+
+### Changed
+
+- `pydantic >= 2.0` is now required.
+  [#26](https://github.com/pyodide/pyodide-lock/pull/26)
+
 ## [0.1.0a4] - 2023-11-17
 
 ### Added

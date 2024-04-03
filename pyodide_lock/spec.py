@@ -2,7 +2,7 @@ import json
 from pathlib import Path
 from typing import Literal
 
-from pydantic import BaseModel, Extra, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class InfoSpec(BaseModel):
@@ -10,16 +10,14 @@ class InfoSpec(BaseModel):
     platform: str
     version: str
     python: str
-
-    class Config:
-        extra = Extra.forbid
+    model_config = ConfigDict(extra="forbid")
 
 
 class PackageSpec(BaseModel):
     name: str
     version: str
     file_name: str = Field(
-        description="Path (or URL) to wheel.", format="uri-reference"
+        description="Path (or URL) to wheel.",
     )
     install_dir: str
     sha256: str = ""
@@ -31,9 +29,7 @@ class PackageSpec(BaseModel):
     unvendored_tests: bool = False
     # This field is deprecated
     shared_library: bool = False
-
-    class Config:
-        extra = Extra.forbid
+    model_config = ConfigDict(extra="forbid")
 
 
 class PyodideLockSpec(BaseModel):
@@ -41,9 +37,7 @@ class PyodideLockSpec(BaseModel):
 
     info: InfoSpec
     packages: dict[str, PackageSpec]
-
-    class Config:
-        extra = Extra.forbid
+    model_config = ConfigDict(extra="forbid")
 
     @classmethod
     def from_json(cls, path: Path) -> "PyodideLockSpec":
@@ -55,7 +49,9 @@ class PyodideLockSpec(BaseModel):
     def to_json(self, path: Path, indent: int | None = None) -> None:
         """Write the lock spec to a json file."""
         with path.open("w", encoding="utf-8") as fh:
-            fh.write(self.json(indent=indent, sort_keys=True))
+            model_dict = self.model_dump()
+            json_str = json.dumps(model_dict, indent=indent, sort_keys=True)
+            fh.write(json_str)
 
     def check_wheel_filenames(self) -> None:
         """Check that the package name and version are consistent in wheel filenames"""

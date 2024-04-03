@@ -12,7 +12,7 @@ readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [
     # compatible with pyodide-build and the as-shipped wheel in the pyodide distribution
-    "pydantic >=1.10.2,<2",
+    "pydantic>=2",
 ]
 classifiers = [
     "Programming Language :: Python :: 3",
