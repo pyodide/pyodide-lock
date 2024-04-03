@@ -2,7 +2,7 @@ import json
 from pathlib import Path
 from typing import Literal
 
-from pydantic import BaseModel, Extra, Field
+from pydantic import ConfigDict, BaseModel, Field
 
 
 class InfoSpec(BaseModel):
@@ -10,9 +10,7 @@ class InfoSpec(BaseModel):
     platform: str
     version: str
     python: str
-
-    class Config:
-        extra = Extra.forbid
+    model_config = ConfigDict(extra="forbid")
 
 
 class PackageSpec(BaseModel):
@@ -31,9 +29,7 @@ class PackageSpec(BaseModel):
     unvendored_tests: bool = False
     # This field is deprecated
     shared_library: bool = False
-
-    class Config:
-        extra = Extra.forbid
+    model_config = ConfigDict(extra="forbid")
 
 
 class PyodideLockSpec(BaseModel):
@@ -41,9 +37,7 @@ class PyodideLockSpec(BaseModel):
 
     info: InfoSpec
     packages: dict[str, PackageSpec]
-
-    class Config:
-        extra = Extra.forbid
+    model_config = ConfigDict(extra="forbid")
 
     @classmethod
     def from_json(cls, path: Path) -> "PyodideLockSpec":
