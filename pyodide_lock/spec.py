@@ -17,7 +17,7 @@ class PackageSpec(BaseModel):
     name: str
     version: str
     file_name: str = Field(
-        description="Path (or URL) to wheel.", format="uri-reference"
+        description="Path (or URL) to wheel.",
     )
     install_dir: str
     sha256: str = ""
@@ -49,7 +49,9 @@ class PyodideLockSpec(BaseModel):
     def to_json(self, path: Path, indent: int | None = None) -> None:
         """Write the lock spec to a json file."""
         with path.open("w", encoding="utf-8") as fh:
-            fh.write(self.json(indent=indent, sort_keys=True))
+            model_dict = self.model_dump()
+            json_str = json.dumps(model_dict, indent=indent, sort_keys=True)
+            fh.write(json_str)
 
     def check_wheel_filenames(self) -> None:
         """Check that the package name and version are consistent in wheel filenames"""
