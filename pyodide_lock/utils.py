@@ -103,7 +103,7 @@ def _generate_package_hash(full_path: Path) -> str:
 
 
 def _get_marker_environment(
-    platform: str, version: str, arch: str, python: str
+    platform: str, version: str, arch: str, python: str, abi_version: str | None = None
 ) -> dict[str, str]:
     """
     Get the marker environment for this pyodide-lock file. If running
