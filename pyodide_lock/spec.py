@@ -10,6 +10,7 @@ class InfoSpec(BaseModel):
     platform: str
     version: str
     python: str
+    abi_version: str | None = None
     model_config = ConfigDict(extra="forbid")
 
 
