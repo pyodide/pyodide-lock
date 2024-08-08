@@ -28,6 +28,8 @@ class PackageSpec(BaseModel):
     imports: list[str] = []
     depends: list[str] = []
     unvendored_tests: bool = False
+    # This field is deprecated and will not be included in the output
+    shared_library: bool = Field(default=False, exclude=True)
     model_config = ConfigDict(extra="forbid")
 
 
