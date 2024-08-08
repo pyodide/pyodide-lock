@@ -27,10 +27,14 @@ def test_lock_spec_parsing(pyodide_version, tmp_path):
 
     spec2 = PyodideLockSpec.from_json(target2_path)
 
+    excluded_fields = {"shared_library"}
+
     assert spec.info == spec2.info
     assert set(spec.packages.keys()) == set(spec2.packages.keys())
     for key in spec.packages:
-        assert spec.packages[key] == spec2.packages[key]
+        pkg1 = spec.packages[key]
+        pkg2 = spec2.packages[key]
+        assert pkg1.model_dump() == pkg2.model_dump()
 
 
 def test_check_wheel_filenames(example_lock_data):
