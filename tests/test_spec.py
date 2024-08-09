@@ -105,3 +105,11 @@ def test_extra_config_forbidden(example_lock_data):
 
     with pytest.raises(ValidationError, match="Extra inputs are not permitted"):
         PackageSpec(**package_data)
+
+
+def test_exclude_key(example_lock_data):
+    spec = PyodideLockSpec(**example_lock_data)
+    dump = spec.model_dump()
+    assert "packages" in dump
+    for pkg in dump["packages"].values():
+        assert "shared_library" not in pkg
