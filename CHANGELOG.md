@@ -6,12 +6,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [0.1.0a7] - 2024-08-08
+
+### Added
+
+- `shared_library` key is removed from the lock file.
+  [#31](https://github.com/pyodide/pyodide-lock/pull/31)
+
 ## [0.1.0a6] - 2024-04-03
 
 ### Added
 
 - The `info` field now contains an optional `abi_version`.
-  [#86](https://github.com/pyodide/pyodide-lock/pull/86)
+  [#27](https://github.com/pyodide/pyodide-lock/pull/27)
 
 ## [0.1.0a5] - 2024-04-03
 

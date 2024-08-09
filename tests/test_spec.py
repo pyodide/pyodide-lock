@@ -30,7 +30,9 @@ def test_lock_spec_parsing(pyodide_version, tmp_path):
     assert spec.info == spec2.info
     assert set(spec.packages.keys()) == set(spec2.packages.keys())
     for key in spec.packages:
-        assert spec.packages[key] == spec2.packages[key]
+        pkg1 = spec.packages[key]
+        pkg2 = spec2.packages[key]
+        assert pkg1.model_dump() == pkg2.model_dump()
 
 
 def test_check_wheel_filenames(example_lock_data):
@@ -103,3 +105,11 @@ def test_extra_config_forbidden(example_lock_data):
 
     with pytest.raises(ValidationError, match="Extra inputs are not permitted"):
         PackageSpec(**package_data)
+
+
+def test_exclude_key(example_lock_data):
+    spec = PyodideLockSpec(**example_lock_data)
+    dump = spec.model_dump()
+    assert "packages" in dump
+    for pkg in dump["packages"].values():
+        assert "shared_library" not in pkg

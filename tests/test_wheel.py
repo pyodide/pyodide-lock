@@ -117,7 +117,6 @@ def test_self_wheel(example_lock_spec):
         imports=["pyodide_lock"],
         depends=["pydantic"],
         unvendored_tests=False,
-        shared_library=False,
     )
 
     assert example_lock_spec.packages["pyodide-lock"] == expected

@@ -29,6 +29,7 @@ LOCK_EXAMPLE = {
             ),
             "imports": ["numpy"],
             "depends": [],
+            "shared_library": False,
         }
     },
 }
