@@ -27,8 +27,6 @@ def test_lock_spec_parsing(pyodide_version, tmp_path):
 
     spec2 = PyodideLockSpec.from_json(target2_path)
 
-    excluded_fields = {"shared_library"}
-
     assert spec.info == spec2.info
     assert set(spec.packages.keys()) == set(spec2.packages.keys())
     for key in spec.packages:
