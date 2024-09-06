@@ -169,12 +169,30 @@ def test_wheel_compatibility_checking(example_lock_spec):
         Path(f"test_wheel-1.0.0-{cpython_tag}-{cpython_tag}-{emscripten_tag}.whl"),
         example_lock_spec.info,
     )
+    # abi3, current version
+    _check_wheel_compatible(
+        Path(f"test_wheel-1.0.0-{cpython_tag}-abi3-{emscripten_tag}.whl"),
+        example_lock_spec.info,
+    )
+    # abi3, past version
+    past_cpython_tag = f"cp{target_python.major}{target_python.minor-1}"
+    _check_wheel_compatible(
+        Path(f"test_wheel-1.0.0-{past_cpython_tag}-abi3-{emscripten_tag}.whl"),
+        example_lock_spec.info,
+    )
     with pytest.raises(RuntimeError):
         # cpython emscripten incorrect version
         _check_wheel_compatible(
             Path(
                 f"test_wheel-1.0.0-{cpython_tag}-{cpython_tag}-emscripten_3_1_2_wasm32.whl"
             ),
+            example_lock_spec.info,
+        )
+    with pytest.raises(RuntimeError):
+        # abi3, interpreter version too large
+        future_cpython_tag = f"cp{target_python.major}{target_python.minor+1}"
+        _check_wheel_compatible(
+            Path(f"test_wheel-1.0.0-{future_cpython_tag}-abi3-{emscripten_tag}.whl"),
             example_lock_spec.info,
         )
     with pytest.raises(RuntimeError):
