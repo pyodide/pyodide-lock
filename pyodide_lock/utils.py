@@ -321,6 +321,9 @@ def _check_wheel_compatible(path: Path, info: InfoSpec) -> None:
         raise RuntimeError(f"Wheel filename {path.name} is not valid") from e
     python_binary_abi = f"cp{target_python.major}{target_python.minor}"
     tags = list(tags)
+    abi3_compat = {
+        f"cp{target_python.major}{minor}" for minor in range(target_python.minor + 1)
+    }
 
     tag_match = False
     for t in tags:
@@ -330,6 +333,8 @@ def _check_wheel_compatible(path: Path, info: InfoSpec) -> None:
             and t.interpreter == python_binary_abi
             and t.platform == target_platform
         ):
+            tag_match = True
+        elif t.abi == "abi3" and t.interpreter in abi3_compat:
             tag_match = True
         elif t.abi == "none" and t.platform == "any":
             match = re.match(rf"py{target_python.major}(\d*)", t.interpreter)
