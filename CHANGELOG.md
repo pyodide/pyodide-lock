@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [0.1.0a8] - 2024-09-17
+
+### Added
+
 - Support stable ABI (`abi3`) wheels in lock file.
   [#32](https://github.com/pyodide/pyodide-lock/pull/32)
 
