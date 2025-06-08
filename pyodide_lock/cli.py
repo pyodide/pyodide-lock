@@ -47,7 +47,7 @@ def add_wheels(
 
     """
     sp = PyodideLockSpec.from_json(input)
-    add_wheels_to_spec(
+    sp = add_wheels_to_spec(
         sp,
         wheels,
         base_path=base_path,
