@@ -1,5 +1,3 @@
-from pathlib import Path
-
 from typer.testing import CliRunner
 
 from pyodide_lock.cli import main
@@ -13,7 +11,7 @@ def test_add_wheels_cli_integration(tmp_path, example_lock_spec, test_wheel_list
     input_file = tmp_path / "input.json"
     output_file = tmp_path / "output.json"
     example_lock_spec.to_json(input_file)
-    
+
     result = runner.invoke(
         main,
         [
@@ -24,10 +22,10 @@ def test_add_wheels_cli_integration(tmp_path, example_lock_spec, test_wheel_list
             str(output_file),
         ],
     )
-        
+
     assert result.exit_code == 0
     assert output_file.exists()
-    
+
     # Verify the output file contains the added wheel
     new_spec = PyodideLockSpec.from_json(output_file)
     assert "py-one" in new_spec.packages
