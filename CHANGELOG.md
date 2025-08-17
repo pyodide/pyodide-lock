@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [0.1.0] - 2025-08-16
+
+No functional changes. pyodide-lock is no longer an alpha version.
+
 ## [0.1.0a8] - 2024-09-17
 
 ### Added
