@@ -1,4 +1,4 @@
-from typer.testing import CliRunner
+from click.testing import CliRunner
 
 from pyodide_lock.cli import main
 from pyodide_lock.spec import PyodideLockSpec
@@ -15,6 +15,7 @@ def test_add_wheels_cli_integration(tmp_path, example_lock_spec, test_wheel_list
     result = runner.invoke(
         main,
         [
+            "add-wheels",
             str(test_wheel_list[0]),
             "--input",
             str(input_file),

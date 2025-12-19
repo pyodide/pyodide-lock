@@ -23,7 +23,7 @@ dynamic = ["version"]
 
 [project.optional-dependencies]
 cli = [
-    "typer",
+    "click",
 ]
 wheel = [
     "pkginfo",
@@ -33,7 +33,7 @@ dev = [
     "pytest",
     "pytest-cov",
     "build",
-    "typer",
+    "click",
     # from wheel
     "pkginfo",
     "packaging",
@@ -76,6 +76,9 @@ select = [
   "PLC",    # pylint conventions
   "PLE",    # pylint errors
   "UP",     # pyupgrade
+]
+ignore = [
+  "E501",   # line too long
 ]
 
 [tool.pytest.ini_options]

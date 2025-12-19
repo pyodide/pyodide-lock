@@ -79,7 +79,7 @@ def test_base_relative_path(test_wheel_list, example_lock_spec):
     assert "needs-one" in example_lock_spec.packages
     assert "needs-one-opt" in example_lock_spec.packages
     assert example_lock_spec.packages["needs-one-opt"].file_name.startswith(
-        "http://www.nowhere.org/dist/nEEds"
+        "http://www.nowhere.org/dist/needs"
     )
 
 
