@@ -24,6 +24,7 @@ dynamic = ["version"]
 [project.optional-dependencies]
 cli = [
     "click",
+    "pyodide-cli",
 ]
 wheel = [
     "pkginfo",

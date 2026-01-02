@@ -64,6 +64,10 @@ def add_wheels(
     this will fail if a dependency isn't available in either the
     existing lock file, or in the set of new wheels.
 
+    \b
+    Arguments:
+        WHEELS: List of paths to wheel files. (required)
+    
     """
     sp = PyodideLockSpec.from_json(input)
     sp = add_wheels_to_spec(
