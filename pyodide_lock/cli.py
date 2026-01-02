@@ -67,7 +67,7 @@ def add_wheels(
     \b
     Arguments:
         WHEELS: List of paths to wheel files. (required)
-    
+
     """
     sp = PyodideLockSpec.from_json(input)
     sp = add_wheels_to_spec(
