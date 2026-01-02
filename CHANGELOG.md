@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [0.1.1] - 2026-01-02
+
+Dropped `typer` dependency for CLI.
+[#39](https://github.com/pyodide/pyodide-lock/pull/39)
+
 ## [0.1.0] - 2025-08-16
 
 No functional changes. pyodide-lock is no longer an alpha version.

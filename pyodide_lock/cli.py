@@ -1,41 +1,60 @@
 from pathlib import Path
 
-import typer
+import click
 
 from .spec import PyodideLockSpec
 from .utils import add_wheels_to_spec
 
-main = typer.Typer(help="manipulate pyodide-lock.json lockfiles.")
+
+@click.group(help="Manipulate pyodide-lock.json lockfiles.")
+def main():
+    """Manipulate pyodide-lock.json lockfiles."""
+    pass
 
 
-@main.command()
+@main.command(short_help="Add wheels to a pyodide-lock.json lockfile.")
+@click.argument(
+    "wheels", nargs=-1, type=click.Path(exists=True, path_type=Path), required=True
+)
+@click.option(
+    "--ignore-missing-dependencies",
+    is_flag=True,
+    default=False,
+    help="If this is true, dependencies which are not in the original lockfile or "
+    "the added wheels will be added to the lockfile. Warning: This will allow a broken lockfile to be created.",
+)
+@click.option(
+    "--input",
+    type=click.Path(path_type=Path),
+    default=Path("pyodide-lock.json"),
+    help="Source lockfile",
+)
+@click.option(
+    "--output",
+    type=click.Path(path_type=Path),
+    default=Path("pyodide-lock-new.json"),
+    help="Updated lockfile",
+)
+@click.option(
+    "--base-path",
+    type=click.Path(path_type=Path),
+    default=None,
+    help="Base path for wheels - wheel file names will be created relative to this path.",
+)
+@click.option(
+    "--wheel-url",
+    type=str,
+    default="",
+    help="Base url which will be appended to the wheel location. "
+    "Use this if you are hosting these wheels on a different server to core pyodide packages",
+)
 def add_wheels(
-    wheels: list[Path],
-    ignore_missing_dependencies: bool = typer.Option(
-        help="If this is true, dependencies "
-        "which are not in the original lockfile or "
-        "the added wheels will be added to the lockfile. "
-        "Warning: This will allow a broken lockfile to "
-        "be created.",
-        default=False,
-    ),
-    input: Path = typer.Option(
-        help="Source lockfile", default=Path("pyodide-lock.json")
-    ),
-    output: Path = typer.Option(
-        help="Updated lockfile", default=Path("pyodide-lock-new.json")
-    ),
-    base_path: Path = typer.Option(
-        help="Base path for wheels - wheel file "
-        "names will be created relative to this path.",
-        default=None,
-    ),
-    wheel_url: str = typer.Option(
-        help="Base url which will be appended to the wheel location."
-        "Use this if you are hosting these wheels on a different "
-        "server to core pyodide packages",
-        default="",
-    ),
+    wheels,
+    ignore_missing_dependencies,
+    input,
+    output,
+    base_path,
+    wheel_url,
 ):
     """Add a set of package wheels to an existing pyodide-lock.json and
     write it out to pyodide-lock-new.json
@@ -44,6 +63,10 @@ def add_wheels(
     including resolution of dependencies in the lock file. By default
     this will fail if a dependency isn't available in either the
     existing lock file, or in the set of new wheels.
+
+    \b
+    Arguments:
+        WHEELS: List of paths to wheel files. (required)
 
     """
     sp = PyodideLockSpec.from_json(input)
