@@ -31,7 +31,7 @@ else:  # pragma: no cover
 if TYPE_CHECKING:
     from collections.abc import Iterator
 
-# types
+# extra type definitions
 
 #: a PEP-508 spec
 TPep508 = str
