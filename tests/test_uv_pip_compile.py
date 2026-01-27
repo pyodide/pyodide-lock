@@ -25,11 +25,12 @@ WHEEL = WHEELS[-1] if WHEELS else None
 
 #: kwargs to keep when attempting a rebuild
 PRESERVE_ON_REBUILD = {
-    "input_base_url",
-    "extra_uv_args",
-    "preserve_url_prefixes",
-    "wheel_dir",
     "debug",
+    "extra_uv_args",
+    "input_base_url",
+    "preserve_url_prefixes",
+    "use_base_url_for_missing",
+    "wheel_dir",
 }
 
 BASE_URL_0290 = "https://cdn.jsdelivr.net/pyodide/v0.29.0/full"
@@ -79,6 +80,14 @@ TEST_CASES: dict[
         {
             "specs": [OLD_SELF_SPEC],
             "preserve_url_prefixes": ["https://"],
+            **COMMON_0290,
+        },
+        [],
+    ),
+    # replace all missing local wheels
+    "0.29.0-use-all-cdn": (
+        {
+            "use_base_url_for_missing": True,
             **COMMON_0290,
         },
         [],

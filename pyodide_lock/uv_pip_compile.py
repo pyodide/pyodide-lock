@@ -111,6 +111,8 @@ class UvPipCompile(BaseModel):
     indent: int | None = None
     #: if given, preserve remote URLs starting with these prefixes
     preserve_url_prefixes: list[str] = Field(default_factory=list)
+    #: if true, rewrite all missing local wheels with ``input_base_url``
+    use_base_url_for_missing: bool = False
 
     # packages #################################################################
     #: list of PEP-508 specs to include when solving
@@ -361,23 +363,34 @@ class UvPipCompile(BaseModel):
 
         self.validate_depends(lock_spec)
 
+        # potentially rewrite novel URLs
         preserve_url_prefixes = tuple(self.preserve_url_prefixes)
-
         if preserve_url_prefixes:
             for pkg_name, url in new_wheel_urls.items():
                 if url.startswith(preserve_url_prefixes):
                     self.use_remote_wheel(lock_spec.packages[pkg_name], url, wheel_dir)
 
+        # potentially rewrite baseline URLs
+        if self.input_base_url and self.use_base_url_for_missing:
+            for pkg_spec in lock_spec.packages.values():
+                file_name = pkg_spec.file_name
+                if parse.urlparse(file_name).scheme:
+                    continue
+                if Path(self.input_path.parent, file_name).is_file():
+                    continue
+                url = f"{self.input_base_url}/{file_name}"
+                self.use_remote_wheel(pkg_spec, url)
+
     def use_remote_wheel(
-        self, pkg_spec: PackageSpec, url: str, wheel_dir: Path
+        self, pkg_spec: PackageSpec, url: str, wheel_dir: Path | None = None
     ) -> None:
         """Replace a local wheel with a remote URL."""
-        local_wheel = (wheel_dir / Path(pkg_spec.file_name).name).resolve()
-        logger.debug(
-            "Replacing wheel for %s:\n\t%s\n\t%s", pkg_spec.name, local_wheel, url
-        )
-        if local_wheel.is_file():
-            local_wheel.unlink()
+        if wheel_dir:
+            local_wheel = (wheel_dir / Path(pkg_spec.file_name).name).resolve()
+            if local_wheel.is_file():
+                logger.debug("Removing wheel for %s:\n\t%s", pkg_spec.name, local_wheel)
+                local_wheel.unlink()
+        logger.debug("Using new URL for %s:\n\t%s", pkg_spec.name, url)
         pkg_spec.file_name = url
 
     def remove_depends(self, dep_name: str, lock_spec: PyodideLockSpec) -> None:
