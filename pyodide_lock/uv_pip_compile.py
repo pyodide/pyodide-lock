@@ -111,8 +111,8 @@ class UvPipCompile(BaseModel):
     indent: int | None = None
     #: if given, preserve remote URLs starting with these prefixes
     preserve_url_prefixes: list[str] = Field(default_factory=list)
-    #: if true, rewrite all missing local wheels with ``input_base_url``
-    use_base_url_for_missing: bool = False
+    #: if fiven, rewrite all missing local wheels with this URL prefix
+    base_url_for_missing: str | None = None
 
     # packages #################################################################
     #: list of PEP-508 specs to include when solving
@@ -371,14 +371,14 @@ class UvPipCompile(BaseModel):
                     self.use_remote_wheel(lock_spec.packages[pkg_name], url, wheel_dir)
 
         # potentially rewrite baseline URLs
-        if self.input_base_url and self.use_base_url_for_missing:
+        if self.base_url_for_missing:
             for pkg_spec in lock_spec.packages.values():
                 file_name = pkg_spec.file_name
                 if parse.urlparse(file_name).scheme:
                     continue
                 if Path(self.input_path.parent, file_name).is_file():
                     continue
-                url = f"{self.input_base_url}/{file_name}"
+                url = f"{self.base_url_for_missing.removesuffix('/')}/{file_name}"
                 self.use_remote_wheel(pkg_spec, url)
 
     def use_remote_wheel(

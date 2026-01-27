@@ -87,7 +87,7 @@ TEST_CASES: dict[
     # replace all missing local wheels
     "0.29.0-use-all-cdn": (
         {
-            "use_base_url_for_missing": True,
+            "base_url_for_missing": BASE_URL_0290,
             **COMMON_0290,
         },
         [],
