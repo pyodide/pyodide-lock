@@ -85,7 +85,7 @@ TEST_CASES: dict[
     ),
 }
 
-if WHEEL.is_file():
+if WHEEL and WHEEL.is_file():
     TEST_CASES["0.29.0-add-pkg-by-whl"] = (
         {"wheels": [WHEEL], **COMMON_0290},
         ["pyodide-lock"],
