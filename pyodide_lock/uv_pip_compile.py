@@ -1,4 +1,4 @@
-"""Update a ``pyodide-lock.josn`` with ``uv pip compile``."""
+"""Update a ``pyodide-lock.json`` with ``uv pip compile``."""
 
 from __future__ import annotations
 
@@ -9,7 +9,7 @@ import sysconfig
 from logging import DEBUG
 from pathlib import Path
 from pprint import pformat
-from subprocess import PIPE, STDOUT, Popen
+from subprocess import PIPE, STDOUT, run
 from tempfile import TemporaryDirectory
 from textwrap import indent
 from typing import TYPE_CHECKING, Any
@@ -59,6 +59,10 @@ class WheelNotFoundError(FileNotFoundError):
     """A wheel cannot be resolve to a local path."""
 
 
+class AmbiguousWheelsError(ValueError):
+    """Multiple wheels found."""
+
+
 class UvNotFoundError(FileNotFoundError):
     """The ``uv`` binary cannot be found."""
 
@@ -77,7 +81,7 @@ class InvalidPyodideLockError(RuntimeError):
 
 # default factories
 def _find_uv_path() -> Path | None:  # pragma: no cover
-    """Locate the `uv` executable."""
+    """Locate the ``uv`` executable."""
     uv_bin = os.environ.get(ENV_VAR_UV_BIN)
     if not uv_bin:
         try:
@@ -210,6 +214,11 @@ class UvPipCompile(BaseModel):
                 return
             yield self.fetch_wheel(wheel_dir, archive["url"])
         elif wheels:
+            if len(wheels) != 1:  # pragma: no cover
+                # for a single ``--python-platform`` and ``--python-version``, a
+                # ``pylock.toml`` should have exactly one wheel
+                msg = f"Expected exactly 1 wheel, found {len(wheels)}: {info}"
+                raise AmbiguousWheelsError(msg)
             wheel = wheels[0]
             if in_lock_hash == wheel["hashes"]["sha256"]:  # pragma: no cover
                 return
@@ -219,23 +228,24 @@ class UvPipCompile(BaseModel):
             raise WheelNotFoundError(msg)
 
     def pylock_toml(self, work: Path, lock_spec: PyodideLockSpec) -> Pep751Toml:
-        """Generate a ``pylock.toml`` from includes, constrains, and excludes."""
-        requirements_in = self.requirements_in(work)
-        constraints_txt = self.constraints_txt(work, requirements_in.specs, lock_spec)
-        excludes_txt = self.excludes_txt(work)
-        pylock_toml = work / "pylock.toml"
-
+        """Generate a ``pylock.toml`` from includes, constraints, and excludes."""
         uv_path = self.uv_path
 
         if uv_path is None:  # pragma: no cover
-            msg = f"""The `uv` executable could not be found.
+            msg = f"""The ``uv`` executable could not be found.
 
             Try one of:
-            - ensure `pyodide-lock[uv]` is installed
-            - set ${ENV_VAR_UV_BIN} to a location of `uv${CFG_VAR_EXE}`
-            - providing an explicit `uv_path`
+            - ensure ``pyodide-lock[uv]`` is installed
+            - set ${ENV_VAR_UV_BIN} to a location of ``uv${CFG_VAR_EXE}``
+            - providing an explicit ``uv_path``
             """
             raise UvNotFoundError(msg)
+
+        pylock_toml = work / "pylock.toml"
+
+        requirements_in = self.requirements_in(work)
+        constraints_txt = self.constraints_txt(work, requirements_in.specs, lock_spec)
+        excludes_txt = self.excludes_txt(work)
 
         # patch version, e.g. 3.13.4 level might not be available
         python_minor = ".".join(lock_spec.info.python.split(".")[:2])
@@ -264,9 +274,9 @@ class UvPipCompile(BaseModel):
     def requirements_in(self, work: Path) -> Pep508Text:
         """Build ``requirements.in`` with specs by package name."""
         wheel_specs = [self.wheel_to_pep508(w) for w in self.wheels]
-        return Pep508Text.from_raw_specs(
+        return Pep508Text(
             path=work / "requirements.in",
-            raw_spec_sets=[self.specs, wheel_specs],
+            specs=Pep508Text.from_raw_specs([self.specs, wheel_specs]),
         )
 
     def constraints_txt(
@@ -276,15 +286,17 @@ class UvPipCompile(BaseModel):
         lock_constraints = [
             self.package_spec_to_pep508(p) for p in lock_spec.packages.values()
         ]
-        return Pep508Text.from_raw_specs(
+        return Pep508Text(
             path=work / "constraints.txt",
-            raw_spec_sets=[lock_constraints, self.constraints],
-            exclude=reqs,
+            specs=Pep508Text.from_raw_specs(
+                [lock_constraints, self.constraints],
+                exclude=reqs,
+            ),
         )
 
     def wheel_to_pep508(self, wheel: Path) -> TPep508:
         """Convert a path to an installable PEP-508 requirement."""
-        meta = pkginfo.get_metadata(f"{wheel}")
+        meta = pkginfo.get_metadata(str(wheel))
         if not (meta and meta.name):  # pragma: no cover
             msg = f"Wheel metadata does not contain a name: {wheel} {meta}"
             raise Pep508UrlError(msg)
@@ -318,9 +330,9 @@ class UvPipCompile(BaseModel):
         if not self.excludes:
             return None
 
-        return Pep508Text.from_raw_specs(
+        return Pep508Text(
             path=work / "excludes.txt",
-            raw_spec_sets=[self.excludes],
+            specs=Pep508Text.from_raw_specs([self.excludes]),
         )
 
     def fetch_new_wheels(
@@ -438,13 +450,12 @@ class Pep751Toml(BaseModel):
             indent("\n".join(uv_pip_compile_args), "\t"),
         )
 
-        p = Popen(uv_pip_compile_args, stdout=PIPE, stderr=STDOUT, encoding="utf-8")
-        p.wait()
+        res = run(uv_pip_compile_args, stdout=PIPE, stderr=STDOUT, encoding="utf-8")
         logger.warning(
             "Output:\n---\n%s\n---\n",
-            indent(p.stdout.read() if p.stdout else "<no output>", "\t"),
+            indent(res.stdout if res.stdout else "<no output>", "\t"),
         )
-        if p.returncode:
+        if res.returncode:
             msg = f"""Failed to generate {path} from:
                 {uv_pip_compile_args}
             """
@@ -465,20 +476,18 @@ class Pep508Text(BaseModel):
     def text(self) -> str:
         return "\n".join(sorted(self.specs.values()))
 
-    def write(self) -> None:
-        """Write the file out to disk"""
+    def model_post_init(self, _context: Any) -> None:
+        """Write the validated specs out to disk."""
         self.path.parent.mkdir(parents=True, exist_ok=True)
         text = self.text
         logger.debug("Writing %s:\n\n%s\n\n", self.path, indent(text, "\t"))
         self.path.write_text(text, encoding="utf-8")
 
-    @classmethod
+    @staticmethod
     def from_raw_specs(
-        cls,
-        path: Path,
         raw_spec_sets: list[list[TPep508]],
         exclude: TReqs | None = None,
-    ) -> Pep508Text:
+    ) -> TReqs:
         """Get canonical name/spec pairs from a list of list of specs; last wins."""
         specs: TReqs = {}
         exclude = exclude or {}
@@ -490,6 +499,4 @@ class Pep508Text(BaseModel):
                 if name not in exclude:
                     specs[name] = spec
 
-        instance = cls(path=path, specs=specs)
-        instance.write()
-        return instance
+        return specs
