@@ -201,7 +201,10 @@ class UvPipCompile(BaseModel):
         in_lock_hash = in_lock.sha256 if in_lock else None
 
         if archive and "path" in archive:
-            src = (work / f"""{archive["path"]}""").resolve()
+            src: Path = (work / archive["path"]).resolve()
+            if not src.is_file():  # pragma: no cover
+                msg = f"Unresolvable wheel archive: {info}"
+                raise WheelNotFoundError(msg)
             dest = (wheel_dir / src.name).resolve()
             if src == dest:  # pragma: no cover
                 return
@@ -224,7 +227,7 @@ class UvPipCompile(BaseModel):
                 return
             yield self.fetch_wheel(wheel_dir, wheel["url"])
         else:  # pragma: no cover
-            msg = f"The pylock.toml package entry cannot be resolved to a wheel: {info}"
+            msg = f"The ``pylock.toml`` package entry cannot be resolved to a wheel: {info}"
             raise WheelNotFoundError(msg)
 
     def pylock_toml(self, work: Path, lock_spec: PyodideLockSpec) -> Pep751Toml:
