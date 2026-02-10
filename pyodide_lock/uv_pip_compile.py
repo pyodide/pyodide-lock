@@ -350,11 +350,12 @@ class UvPipCompile(BaseModel):
         new_wheel_urls: dict[str, str] = {}
         for info in pylock_toml.packages.values():
             info_wheels = [*self.resolve_wheel(info, work, wheel_dir, lock_spec)]
-            if info_wheels:
-                wheel, url = info_wheels[0]
-                new_wheels += [wheel]
-                if url:
-                    new_wheel_urls[canonicalize_name(info["name"])] = url
+            if not info_wheels:
+                continue
+            wheel, url = info_wheels[0]
+            new_wheels.append(wheel)
+            if url:
+                new_wheel_urls[canonicalize_name(info["name"])] = url
 
         return new_wheels, new_wheel_urls
 
