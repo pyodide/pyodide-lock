@@ -26,19 +26,28 @@ cli = [
     "click",
     "pyodide-cli>=0.4.0",
 ]
+uv = [
+    "uv >=0.9.27",
+    # from wheel
+    "packaging",
+    "pkginfo",
+    "wheel",
+]
 wheel = [
     "pkginfo",
     "packaging",
 ]
 dev = [
-    "pytest",
-    "pytest-cov",
     "build",
     "click",
+    "pytest-cov",
+    "pytest",
+    # from uv
+    "uv >=0.9.27",
     # from wheel
-    "pkginfo",
     "packaging",
-    "wheel"
+    "pkginfo",
+    "wheel",
 ]
 
 [project.urls]
