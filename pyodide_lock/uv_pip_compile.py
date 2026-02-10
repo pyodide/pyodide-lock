@@ -115,7 +115,7 @@ class UvPipCompile(BaseModel):
     indent: int | None = None
     #: if given, preserve remote URLs starting with these prefixes
     preserve_url_prefixes: list[str] = Field(default_factory=list)
-    #: if fiven, rewrite all missing local wheels with this URL prefix
+    #: if given, rewrite all missing local wheels with this URL prefix
     base_url_for_missing: str | None = None
 
     # packages #################################################################
