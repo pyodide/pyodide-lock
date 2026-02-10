@@ -44,10 +44,10 @@ TReqs = dict[NormalizedName, TPep508]
 #: an environment variable
 ENV_VAR_UV_BIN = "UV_BIN"
 
-#: the magic string in ``uv`` for pyodide; it is unclear how to automate this
-UV_PYODIDE_PLATFORM = "wasm32-pyodide2024"
+#: default ``--python-platform``; unclear how to automate from nullable ``abi_version``
+DEFAULT_UV_PYODIDE_PLATFORM = "wasm32-pyodide2024"
 
-#: URL schemes ``uv`` would be able to install
+#: URL schemes ``uv`` would be able to install (not e.g. ``emfs://``)
 INSTALLABLE_URL_SCHEMES = {"http", "https", "file"}
 
 #: the executable prefix for this platform
@@ -130,7 +130,7 @@ class UvPipCompile(BaseModel):
 
     # solver ###################################################################
     #: the ``uv`` python platform for pyodide
-    python_platform: str = UV_PYODIDE_PLATFORM
+    python_platform: str = DEFAULT_UV_PYODIDE_PLATFORM
     #: the ``uv`` binary
     uv_path: Path | None = Field(default_factory=_find_uv_path)
     #: extra arguments to ``uv pip compile``
