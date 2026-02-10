@@ -4,13 +4,16 @@
 ![GHA](https://github.com/pyodide/pyodide-lock/actions/workflows/main.yml/badge.svg)
 [![codecov](https://codecov.io/gh/pyodide/pyodide-lock/branch/main/graph/badge.svg?token=T0UEJW2F2P)](https://codecov.io/gh/pyodide/pyodide-lock)
 
-Tooling to manage `pyodide-lock.json` files.
+Tooling to manage the `pyodide-lock.json` file.
 
-The `pyodide-lock.json` file captures the versions of the packages
+Note: the API of this package is still being iterated on and may change completely
+before the 0.1 release.
+
+The `pyodide-lock` file is used to lock the versions of the packages that are
 used in a given Pyodide application. Packages included in `pyodide-lock.json`
 will be auto-loaded at import time, when using `pyodide.runPythonAsync` or
 running in JupyterLite or PyScript, and do not need to be explicitly installed
-with `micropip`.
+with micropip.
 
 ## Installation
 
@@ -20,18 +23,13 @@ pip install pyodide-lock
 
 ## Python API
 
-### Read and writing lock files
-
-To parse and write a `pyodide-lock.json` file:
-
-```python
-from pathlib import Path
+To parsing and write the `pyodide-lock.json` (formerly `repodata.json`) file:
+```py
 from pyodide_lock import PyodideLockSpec
 
-lock_path = Path("pyodide-lock.json")
-lock_spec = PyodideLockSpec.from_json(lock_path)
+lock_spec = PyodideLockSpec.from_json("pyodide-lock.json")
 # Make some changes
-lock_spec.to_json(lock_path)
+lock_spec.to_json("pyodide-lock.json")
 ```
 
 ## License
