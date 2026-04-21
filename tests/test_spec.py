@@ -113,6 +113,6 @@ def test_exclude_key(example_lock_data):
     assert "packages" in dump
     for pkg in dump["packages"].values():
         assert "shared_library" not in pkg
-    
+
     assert "info" in dump
     assert "version" not in dump["info"]
