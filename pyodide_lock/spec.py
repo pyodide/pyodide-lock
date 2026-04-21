@@ -8,7 +8,8 @@ from pydantic import BaseModel, ConfigDict, Field
 class InfoSpec(BaseModel):
     arch: Literal["wasm32", "wasm64"] = "wasm32"
     platform: str
-    version: str
+    # This field is deprecated and will not be included in the output
+    version: str = Field(default="0.0.0", exclude=True)
     python: str
     abi_version: str | None = None
     model_config = ConfigDict(extra="forbid")
