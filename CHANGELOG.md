@@ -18,6 +18,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   you can use the `abi_version` field in the `info` section instead.
   [#41](https://github.com/pyodide/pyodide-lock/pull/41)
 
+- Upgraded Python version constraint from 3.10 to 3.12.
+  [#41](https://github.com/pyodide/pyodide-lock/pull/41)
+
+## [0.1.2] - 2026-02-27
+
+- Added `UvPipCompile` compile class for experimental support for constructing
+  lock files using `uv pip compile`.
+  [#40](https://github.com/pyodide/pyodide-lock/pull/40)
+
 ## [0.1.1] - 2026-01-02
 
 Dropped `typer` dependency for CLI.
