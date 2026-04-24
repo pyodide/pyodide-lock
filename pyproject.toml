@@ -39,6 +39,7 @@ wheel = [
 ]
 dev = [
     "build",
+    "setuptools",
     "click",
     "pytest-cov",
     "pytest",
