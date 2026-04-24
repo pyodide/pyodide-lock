@@ -15,7 +15,7 @@ from typing import TYPE_CHECKING, Any
 from urllib import parse, request
 
 import pkginfo
-import tomli as tomllib
+import tomllib
 from packaging.requirements import Requirement
 from packaging.utils import NormalizedName, canonicalize_name
 from pydantic import BaseModel, Field
