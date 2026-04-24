@@ -5,6 +5,7 @@ from __future__ import annotations
 import os
 import shutil
 import sysconfig
+import tomllib
 from logging import DEBUG
 from pathlib import Path
 from pprint import pformat
@@ -15,7 +16,6 @@ from typing import TYPE_CHECKING, Any
 from urllib import parse, request
 
 import pkginfo
-import tomllib
 from packaging.requirements import Requirement
 from packaging.utils import NormalizedName, canonicalize_name
 from pydantic import BaseModel, Field
