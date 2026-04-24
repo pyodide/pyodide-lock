@@ -27,7 +27,7 @@ def test_lock_spec_parsing(pyodide_version, tmp_path):
 
     spec2 = PyodideLockSpec.from_json(target2_path)
 
-    assert spec.info == spec2.info
+    assert spec.info.model_dump() == spec2.info.model_dump()
     assert set(spec.packages.keys()) == set(spec2.packages.keys())
     for key in spec.packages:
         pkg1 = spec.packages[key]
@@ -113,3 +113,6 @@ def test_exclude_key(example_lock_data):
     assert "packages" in dump
     for pkg in dump["packages"].values():
         assert "shared_library" not in pkg
+
+    assert "info" in dump
+    assert "version" not in dump["info"]

@@ -4,8 +4,8 @@ from __future__ import annotations
 
 import os
 import shutil
-import sys
 import sysconfig
+import tomllib
 from logging import DEBUG
 from pathlib import Path
 from pprint import pformat
@@ -22,11 +22,6 @@ from pydantic import BaseModel, Field
 
 from .spec import PackageSpec, PyodideLockSpec
 from .utils import add_wheels_to_spec, logger
-
-if sys.version_info >= (3, 11):  # pragma: no cover
-    import tomllib
-else:  # pragma: no cover
-    import tomli as tomllib
 
 if TYPE_CHECKING:
     from collections.abc import Iterator
