@@ -319,7 +319,7 @@ def _check_wheel_compatible(path: Path, info: InfoSpec) -> None:
     target_python = version_parse(info.python)
     target_platform = info.platform + "_" + info.arch
     try:
-        (name, version, build_number, tags) = parse_wheel_filename(str(path.name))
+        name, version, build_number, tags = parse_wheel_filename(str(path.name))
     except (InvalidWheelFilename, InvalidVersion) as e:
         raise RuntimeError(f"Wheel filename {path.name} is not valid") from e
     python_binary_abi = f"cp{target_python.major}{target_python.minor}"
