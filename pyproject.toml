@@ -90,6 +90,7 @@ select = [
 ]
 ignore = [
   "E501",   # line too long
+  "PLC0415", # `import` should be at the top-level of a file
 ]
 
 [tool.pytest.ini_options]
