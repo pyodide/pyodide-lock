@@ -42,7 +42,8 @@ repos:
       - id: mypy
         args: []
         additional_dependencies:
-          - pydantic
+          - attrs
+          - cattrs
 
 ci:
   autoupdate_schedule: "quarterly"

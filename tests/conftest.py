@@ -76,7 +76,7 @@ def example_lock_data():
 
 @pytest.fixture
 def example_lock_spec():
-    return PyodideLockSpec(**deepcopy(LOCK_EXAMPLE))
+    return PyodideLockSpec.from_dict(deepcopy(LOCK_EXAMPLE))
 
 
 # build a wheel

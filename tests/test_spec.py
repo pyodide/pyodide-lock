@@ -27,20 +27,20 @@ def test_lock_spec_parsing(pyodide_version, tmp_path):
 
     spec2 = PyodideLockSpec.from_json(target2_path)
 
-    assert spec.info.model_dump() == spec2.info.model_dump()
+    assert spec.info.to_dict() == spec2.info.to_dict()
     assert set(spec.packages.keys()) == set(spec2.packages.keys())
     for key in spec.packages:
         pkg1 = spec.packages[key]
         pkg2 = spec2.packages[key]
-        assert pkg1.model_dump() == pkg2.model_dump()
+        assert pkg1.to_dict() == pkg2.to_dict()
 
 
 def test_check_wheel_filenames(example_lock_data):
-    spec = PyodideLockSpec(**example_lock_data)
+    spec = PyodideLockSpec.from_dict(example_lock_data)
     spec.check_wheel_filenames()
 
     example_lock_data["packages"]["numpy"]["name"] = "numpy2"  # type: ignore[index]
-    spec = PyodideLockSpec(**example_lock_data)
+    spec = PyodideLockSpec.from_dict(example_lock_data)
     msg = (
         ".*check_wheel_filenames failed.*\n.*numpy:\n.*"
         "Package name in wheel filename 'numpy' does not match 'numpy2'"
@@ -49,7 +49,7 @@ def test_check_wheel_filenames(example_lock_data):
         spec.check_wheel_filenames()
 
     example_lock_data["packages"]["numpy"]["version"] = "0.2.3"  # type: ignore[index]
-    spec = PyodideLockSpec(**example_lock_data)
+    spec = PyodideLockSpec.from_dict(example_lock_data)
     msg = (
         ".*check_wheel_filenames failed.*\n.*numpy:\n.*"
         "Package name in wheel filename 'numpy' does not match 'numpy2'\n.*"
@@ -63,7 +63,7 @@ def test_check_wheel_filenames(example_lock_data):
 def test_to_json_indent(tmp_path, example_lock_data):
     target_path = tmp_path / "pyodide-lock.json"
 
-    spec = PyodideLockSpec(**example_lock_data)
+    spec = PyodideLockSpec.from_dict(example_lock_data)
     spec.to_json(target_path)
 
     assert "\n" not in target_path.read_text()
@@ -79,14 +79,14 @@ def test_update_sha256(monkeypatch, example_lock_data):
     monkeypatch.setattr("pyodide_lock.utils._generate_package_hash", lambda x: "abcd")
 
     example_lock_data["packages"]["numpy"]["sha256"] = "0"  # type: ignore[index]
-    spec = PyodideLockSpec(**example_lock_data)
+    spec = PyodideLockSpec.from_dict(example_lock_data)
     assert spec.packages["numpy"].sha256 == "0"
     update_package_sha256(spec.packages["numpy"], Path("/some/path"))
     assert spec.packages["numpy"].sha256 == "abcd"
 
 
 def test_extra_config_forbidden(example_lock_data):
-    from pydantic import ValidationError
+    from cattrs.errors import ForbiddenExtraKeysError
 
     info_data = deepcopy(example_lock_data["info"])
     package_data = deepcopy(
@@ -97,19 +97,19 @@ def test_extra_config_forbidden(example_lock_data):
     info_data["extra"] = "extra"  # type: ignore[index]
     package_data["extra"] = "extra"
 
-    with pytest.raises(ValidationError, match="Extra inputs are not permitted"):
-        PyodideLockSpec(**example_lock_data)
+    with pytest.raises(ForbiddenExtraKeysError, match="extra"):
+        PyodideLockSpec.from_dict(example_lock_data)
 
-    with pytest.raises(ValidationError, match="Extra inputs are not permitted"):
-        InfoSpec(**info_data)  # type: ignore[arg-type]
+    with pytest.raises(ForbiddenExtraKeysError, match="extra"):
+        InfoSpec.from_dict(info_data)  # type: ignore[arg-type]
 
-    with pytest.raises(ValidationError, match="Extra inputs are not permitted"):
-        PackageSpec(**package_data)
+    with pytest.raises(ForbiddenExtraKeysError, match="extra"):
+        PackageSpec.from_dict(package_data)
 
 
 def test_exclude_key(example_lock_data):
-    spec = PyodideLockSpec(**example_lock_data)
-    dump = spec.model_dump()
+    spec = PyodideLockSpec.from_dict(example_lock_data)
+    dump = spec.to_dict()
     assert "packages" in dump
     for pkg in dump["packages"].values():
         assert "shared_library" not in pkg
