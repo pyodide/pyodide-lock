@@ -97,7 +97,7 @@ TEST_CASES: dict[
 if WHEEL and WHEEL.is_file():
     TEST_CASES["0.29.0-add-pkg-by-whl"] = (
         {"wheels": [WHEEL], **COMMON_0290},
-        ["pyodide-lock"],
+        ["pyodide-lock", "cattrs"],
     )
     TEST_CASES["0.29.0-add-whl-by-constraint"] = (
         {
@@ -127,7 +127,7 @@ def test_uv_pip_compile(test_case: str, tmp_path: Path) -> None:
     }
 
     # run the build
-    upc = UvPipCompile(**base_kwargs, **kwargs)
+    upc = UvPipCompile.from_dict({**base_kwargs, **kwargs})
     upc.update()
     raw_lock = json.loads(output_path.read_text(encoding="utf-8"))
     diff = len(diff_json(input_path, output_path))
@@ -152,7 +152,7 @@ def test_uv_pip_compile(test_case: str, tmp_path: Path) -> None:
     ]
 
     # run the build again, in-place
-    upc = UvPipCompile(input_path=output_path, **relock_kwargs)
+    upc = UvPipCompile.from_dict({"input_path": output_path, **relock_kwargs})
     upc.update()
 
     # verify no changes

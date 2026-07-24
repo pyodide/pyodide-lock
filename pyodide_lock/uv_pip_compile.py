@@ -15,10 +15,12 @@ from textwrap import indent
 from typing import TYPE_CHECKING, Any
 from urllib import parse, request
 
+import attrs
+import cattrs
 import pkginfo
+from attrs import define, field
 from packaging.requirements import Requirement
 from packaging.utils import NormalizedName, canonicalize_name
-from pydantic import BaseModel, Field
 
 from .spec import PackageSpec, PyodideLockSpec
 from .utils import add_wheels_to_spec, logger
@@ -94,7 +96,8 @@ def _find_uv_path() -> Path | None:  # pragma: no cover
     return None
 
 
-class UvPipCompile(BaseModel):
+@define
+class UvPipCompile:
     """Update a partial Pyodide distribution with ``uv pip compile``."""
 
     # input/output #############################################################
@@ -109,33 +112,38 @@ class UvPipCompile(BaseModel):
     #: indent level for output lock
     indent: int | None = None
     #: if given, preserve remote URLs starting with these prefixes
-    preserve_url_prefixes: list[str] = Field(default_factory=list)
+    preserve_url_prefixes: list[str] = field(factory=list)
     #: if given, rewrite all missing local wheels with this URL prefix
     base_url_for_missing: str | None = None
 
     # packages #################################################################
     #: list of PEP-508 specs to include when solving
-    specs: list[str] = Field(default_factory=list)
+    specs: list[str] = field(factory=list)
     #: list of local wheels to include when solving
-    wheels: list[Path] = Field(default_factory=list)
+    wheels: list[Path] = field(factory=list)
     #: list of PEP-508 specs to constrain when solving
-    constraints: list[str] = Field(default_factory=list)
+    constraints: list[str] = field(factory=list)
     #: list of PEP-508 specs to exclude from solving
-    excludes: list[str] = Field(default_factory=list)
+    excludes: list[str] = field(factory=list)
 
     # solver ###################################################################
     #: the ``uv`` python platform for pyodide
     python_platform: str = DEFAULT_UV_PYODIDE_PLATFORM
     #: the ``uv`` binary
-    uv_path: Path | None = Field(default_factory=_find_uv_path)
+    uv_path: Path | None = field(factory=_find_uv_path)
     #: extra arguments to ``uv pip compile``
-    extra_uv_args: list[str] = Field(default_factory=list)
+    extra_uv_args: list[str] = field(factory=list)
 
     # misc #####################################################################
     #: a working directory; if unset, uses a temp folder, cleaned on success
     work_dir: Path | None = None
     #: increase logging level while updating
     debug: bool | None = None
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> UvPipCompile:
+        """Build from a dictionary, ignoring any unknown keys."""
+        return _converter.structure(data, cls)
 
     def update(self) -> PyodideLockSpec:
         """Update a lock with ``uv pip compile``, managing logging and work folder."""
@@ -425,7 +433,8 @@ class UvPipCompile(BaseModel):
             raise InvalidPyodideLockError(msg)
 
 
-class Pep751Toml(BaseModel):
+@define
+class Pep751Toml:
     """A PEP-751 ``pylock.toml``."""
 
     #: the path on disk
@@ -463,7 +472,8 @@ class Pep751Toml(BaseModel):
         return cls(path=path)
 
 
-class Pep508Text(BaseModel):
+@define
+class Pep508Text:
     """A ``requirements.txt``-style file for requirements, constraints, excludes, etc."""
 
     #: the path on disk
@@ -475,7 +485,7 @@ class Pep508Text(BaseModel):
     def text(self) -> str:
         return "\n".join(sorted(self.specs.values()))
 
-    def model_post_init(self, _context: Any) -> None:
+    def __attrs_post_init__(self) -> None:
         """Write the validated specs out to disk."""
         self.path.parent.mkdir(parents=True, exist_ok=True)
         text = self.text
@@ -499,3 +509,11 @@ class Pep508Text(BaseModel):
                     specs[name] = spec
 
         return specs
+
+
+# The module uses ``from __future__ import annotations``; resolve string
+# annotations so cattrs can build a structure hook for ``UvPipCompile``.
+attrs.resolve_types(UvPipCompile, globalns=globals())
+
+#: extra keys are ignored when structuring (mirrors the previous pydantic default)
+_converter = cattrs.Converter()

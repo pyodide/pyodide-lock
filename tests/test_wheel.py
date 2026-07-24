@@ -115,7 +115,7 @@ def test_self_wheel(example_lock_spec):
         sha256=_generate_package_hash(WHEEL),
         package_type="package",
         imports=["pyodide_lock"],
-        depends=["pydantic"],
+        depends=["attrs", "cattrs"],
         unvendored_tests=False,
     )
 

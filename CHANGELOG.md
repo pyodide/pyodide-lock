@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+### Changed
+
+- Replaced the `pydantic` dependency with `attrs` + `cattrs`. The public spec
+  classes (`InfoSpec`, `PackageSpec`, `PyodideLockSpec`) are now `attrs` classes.
+  Construct them from dictionaries with `PyodideLockSpec.from_dict(...)` (and the
+  equivalent `from_dict` on the other specs) instead of `PyodideLockSpec(**data)`,
+  and serialize with `.to_dict()` instead of `.model_dump()`.
+
 ## [0.1.3] - 2026-04-21
 
 ### Changed
