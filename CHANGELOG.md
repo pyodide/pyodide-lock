@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [0.2.0] - 2026-07-24
+
 ### Changed
 
 - Replaced the `pydantic` dependency with `attrs` + `cattrs`. The public spec
@@ -14,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   Construct them from dictionaries with `PyodideLockSpec.from_dict(...)` (and the
   equivalent `from_dict` on the other specs) instead of `PyodideLockSpec(**data)`,
   and serialize with `.to_dict()` instead of `.model_dump()`.
+  [#42](https://github.com/pyodide/pyodide-lock/pull/42)
 
 ## [0.1.3] - 2026-04-21
 
