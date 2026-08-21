@@ -46,6 +46,7 @@ class PackageSpec:
     unvendored_tests: bool = False
     # This field is deprecated and will not be included in the output
     shared_library: bool = field(default=False, metadata={"exclude": True})
+    tool: dict[str, dict[str, Any]] = field(factory=dict)
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> "PackageSpec":
@@ -61,6 +62,7 @@ class PyodideLockSpec:
 
     info: InfoSpec
     packages: dict[str, PackageSpec]
+    tool: dict[str, dict[str, Any]] = field(factory=dict)
 
     @classmethod
     def from_json(cls, path: Path) -> "PyodideLockSpec":
